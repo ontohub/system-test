@@ -42,7 +42,7 @@ Before do
       # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
       $backend_pid = fork do
         # exec is needed to kill the process, system & %x & Open3 blocks
-        exec('RAILS_ENV=test rails s', :out => File::NULL)
+        exec('RAILS_ENV=test rails s', out: File::NULL)
       end
     end
     wait_until_listening(3000)
@@ -53,7 +53,7 @@ Before do
     system('bower install --silent')
     $frontend_pid = fork do
       # exec is needed to kill the process, system & %x & Open3 blocks
-      exec('ember serve', :out => File::NULL)
+      exec('yarn start', out: File::NULL)
     end
     wait_until_listening(4200)
   end
