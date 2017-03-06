@@ -10,3 +10,5 @@ Feature: Ontohub
     | ../../hets-rabbitmq-wrapper |
   When I run `curl localhost:3000`
   Then the exit status should be 0
+  When I run `curl localhost:4200`
+  Then the exit status should be 0
