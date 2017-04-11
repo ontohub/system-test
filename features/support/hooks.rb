@@ -1,3 +1,5 @@
+require 'bundler'
+
 def kill_process(pid)
   Process.kill('KILL', pid)
   Process.wait

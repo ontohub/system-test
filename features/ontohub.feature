@@ -17,4 +17,4 @@ Feature: Ontohub
   When I add a user to the database
   Then the user should be there
   When I do a rollback
-  Then the user shouldnt be there
+  Then the user shouldn't be there
