@@ -12,3 +12,9 @@ Feature: Ontohub
   Then the exit status should be 0
   When I run `curl --connect-timeout 30 localhost:4200`
   Then the exit status should be 0
+
+  Scenario: Successful rollback
+  When I add a user to the database
+  Then the user should be there
+  When I do a rollback
+  Then the user shouldn't be there
