@@ -9,3 +9,22 @@ Capybara.configure do |c|
   c.app_host = 'http://localhost:4200'
   c.default_max_wait_time = 5
 end
+
+Capybara.register_driver :poltergeist do |app|
+  Capybara::Poltergeist::Driver.new(app, {js_errors: false})
+end
+
+# Capybara is smart enough to wait for ajax when not finding elements.
+# In some situations the element is already existent, but has not been updated
+# yet. This is where you need to manually use wait_for_ajax.
+def wait_for_ajax(wait_time = Capybara.default_max_wait_time)
+  counter = 0
+  # The condition only works with poltergeist/phantomjs.
+  while page.evaluate_script("$.active").to_i > 0
+    counter += 1
+    sleep(0.1)
+    if counter >= 10 * wait_time
+      raise "AJAX request took longer than 5 seconds."
+    end
+  end
+end
