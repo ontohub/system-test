@@ -33,6 +33,10 @@ def which(cmd)
   return nil
 end
 
+def sed
+  which('gsed') ? 'gsed' : 'sed'
+end
+
 # global before
 
 %w(ontohub-frontend ontohub-backend hets-rabbitmq-wrapper).each do |repo|
@@ -51,7 +55,6 @@ Dir.chdir('ontohub-backend') do
   # Most output is silenced and only shows errors and warnings
   Bundler.with_clean_env do
     system('bundle install --quiet')
-    sed = which('gsed') ? 'gsed' : 'sed'
     system("#{sed} -i \"s#ontohub_test#ontohub_system_test#g\" config/database.yml")
     system('RAILS_ENV=test bundle exec rails db:recreate')
     system('RAILS_ENV=test bundle exec rails db:seed')
@@ -69,7 +72,6 @@ end
 Dir.chdir('ontohub-frontend') do
   system('yarn install --pure-lockfile --no-progress')
   system('bower install --silent')
-  sed = which('gsed') ? 'gsed' : 'sed'
   system("#{sed} -i \"s#'http://localhost:3000'#'http://localhost:#{$backend_port}'#g\" config/environment.js")
   system(%(echo '{"port": #{$frontend_port}}' > .ember-cli))
   $frontend_pid = fork do

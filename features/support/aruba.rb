@@ -2,6 +2,7 @@ require 'aruba/cucumber'
 require 'capybara/cucumber'
 require 'capybara/poltergeist'
 require 'faker'
+require 'active_support/inflector'
 
 $github_ontohub = 'https://github.com/ontohub/'
 $frontend_port = 4201

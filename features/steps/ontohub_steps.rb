@@ -35,7 +35,7 @@ Given(/^I am logged in$/) do
     fill_in 'password', with: 'changeme'
     click_button 'Sign in'
   end
-  find('.top-bar-right').find('a#user_menu_link').click
+  find('.top-bar-right a#user_menu_link').click
   expect(page).to have_content('Signed in as')
 end
 
@@ -60,20 +60,28 @@ When(/^I create a repository$/) do
     choose('Public')
   end
   click_button 'Save'
+end
+
+Then(/^I should see the repository page$/) do
   expect(page).to have_content("ada / #{$repository_name}")
 end
 
+
 Then(/^the repository should be visible in the repository overview page$/) do
   visit('/search')
-  expect(page).to have_content("ada/#{$repository_name.gsub(/\s/, '-').downcase}")
+  expect(page).to have_content("ada/#{$repository_name.parameterize}")
 end
 
 Then(/^the repository should be in the backend$/) do
   steps %{
-    When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:#{$backend_port}/ada/#{$repository_name.gsub(/\s/, '-').downcase}`
+    When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:#{$backend_port}/ada/#{$repository_name.parameterize}`
     Then the exit status should be 0
-    And the output should contain "200 OK"
+    And the output contains a line "HTTP/1.1 200 OK"
   }
+end
+
+Then(/^the output contains a line "([^"]*)"$/) do |arg|
+  expect(extract_text(unescape_text(last_command_started.output))).to match(/#{arg}/)
 end
 
 # Steps belong to 'edit repository' scenario
@@ -94,13 +102,14 @@ end
 
 Then(/^the changed repository should be visible in the repository overview page$/) do
   visit('/search')
-  expect(page).to have_content('Changed description of repo0')
+  @description = 'Changed description of repo0'
+  expect(page).to have_content(@description)
 end
 
 Then(/^the changed repository should be in the backend$/) do
   steps %{
     When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:#{$backend_port}/ada/repo0`
     Then the exit status should be 0
-    And the output should contain "Changed description of repo0"
+    And the output should contain "#{@description}"
   }
 end
