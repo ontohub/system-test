@@ -27,3 +27,11 @@ Feature: Ontohub
   And I create a repository
   Then the repository should be visible in the repository overview page
   And the repository should be in the backend
+
+  @javascript
+  Scenario: Edit a repository
+  Given I visit the start page
+  And I am logged in and there is a repository I created
+  When I change the description of the repository
+  Then the changed repository should be visible in the repository overview page
+  And the changed repository should be in the backend

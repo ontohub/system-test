@@ -29,7 +29,7 @@ Given(/^I visit the start page$/) do
 end
 
 Given(/^I am logged in$/) do
-  find('.top-bar-right').find('a#sign_in_menu_link').click
+  find('.top-bar-right a#sign_in_menu_link').click
   within('form#login') do
     fill_in 'username', with: 'ada'
     fill_in 'password', with: 'changeme'
@@ -40,7 +40,7 @@ Given(/^I am logged in$/) do
 end
 
 When(/^I visit the repository creation page$/) do
-  find('.top-bar-right').find('a#new_menu_link').click
+  find('.top-bar-right a#new_menu_link').click
   click_link('New repository')
   expect(page).to have_content('Create a new repository')
 end
@@ -73,5 +73,34 @@ Then(/^the repository should be in the backend$/) do
     When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:3000/ada/#{$repository_name.gsub(/\s/, '-').downcase}`
     Then the exit status should be 0
     And the output should contain "200 OK"
+  }
+end
+
+# Steps belong to 'edit repository' scenario
+
+Given(/^I am logged in and there is a repository I created$/) do
+  steps %{
+    Given I am logged in
+  }
+end
+
+When(/^I change the description of the repository$/) do
+  visit('/ada/repo0')
+  find('.top-route-header span').click
+  find('.input-group-field').set('Changed description of repo0')
+  find('.input-group-button button').click
+  wait_for_ajax #Wait for the changed description
+end
+
+Then(/^the changed repository should be visible in the repository overview page$/) do
+  visit('/search')
+  expect(page).to have_content('Changed description of repo0')
+end
+
+Then(/^the changed repository should be in the backend$/) do
+  steps %{
+    When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:3000/ada/repo0`
+    Then the exit status should be 0
+    And the output should contain "Changed description of repo0"
   }
 end
