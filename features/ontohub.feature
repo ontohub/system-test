@@ -18,3 +18,12 @@ Feature: Ontohub
   Then the user should be there
   When I do a rollback
   Then the user shouldn't be there
+
+  @javascript
+  Scenario: Create a repository
+  Given I visit the start page
+  And I am logged in
+  When I visit the repository creation page
+  And I create a repository
+  Then the repository should be visible in the repository overview page
+  And the repository should be in the backend
