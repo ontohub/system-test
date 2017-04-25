@@ -22,8 +22,23 @@ rescue Timeout::Error
   false
 end
 
+def which(cmd)
+  exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
+  ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
+    exts.each { |ext|
+      exe = File.join(path, "#{cmd}#{ext}")
+      return exe if File.executable?(exe) && !File.directory?(exe)
+    }
+  end
+  return nil
+end
+
+def sed
+  which('gsed') ? 'gsed' : 'sed'
+end
+
 # global before
-$github_ontohub = 'https://github.com/ontohub/'
+
 %w(ontohub-frontend ontohub-backend hets-rabbitmq-wrapper).each do |repo|
   if File.directory?(repo)
     Dir.chdir(repo) do
@@ -40,31 +55,34 @@ Dir.chdir('ontohub-backend') do
   # Most output is silenced and only shows errors and warnings
   Bundler.with_clean_env do
     system('bundle install --quiet')
+    system("#{sed} -i \"s#ontohub_test#ontohub_system_test#g\" config/database.yml")
     system('RAILS_ENV=test bundle exec rails db:recreate')
     system('RAILS_ENV=test bundle exec rails db:seed')
-    system('psql -d ontohub_test -U postgres -f ../features/support/emaj.sql')
+    system("psql -d #{$database_name} -U postgres -f ../features/support/emaj.sql")
     # Change something in database
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
     $backend_pid = fork do
       # exec is needed to kill the process, system & %x & Open3 blocks
-      exec('RAILS_ENV=test rails s', out: File::NULL)
+      exec("RAILS_ENV=test rails s -p #{$backend_port}", out: File::NULL)
     end
   end
-  wait_until_listening(3000)
+  wait_until_listening($backend_port)
 end
 
 Dir.chdir('ontohub-frontend') do
   system('yarn install --pure-lockfile --no-progress')
   system('bower install --silent')
+  system("#{sed} -i \"s#'http://localhost:3000'#'http://localhost:#{$backend_port}'#g\" config/environment.js")
+  system(%(echo '{"port": #{$frontend_port}}' > .ember-cli))
   $frontend_pid = fork do
     # exec is needed to kill the process, system & %x & Open3 blocks
     exec('yarn start', out: File::NULL)
   end
-  wait_until_listening(4200)
+  wait_until_listening($frontend_port)
 end
 
 After do
-  system(%(psql -d ontohub_test -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
+  system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
 end
 
 # global after
@@ -73,7 +91,7 @@ at_exit do
   kill_process($frontend_pid)
   Dir.chdir('ontohub-backend') do
     Bundler.with_clean_env do
-      system(%(psql -d ontohub_test -U postgres -c "SELECT emaj.emaj_stop_group('system-test');"))
+      system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_stop_group('system-test');"))
       system('RAILS_ENV=test bundle exec rails db:drop')
     end
   end

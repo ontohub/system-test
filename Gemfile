@@ -1,2 +1,7 @@
 source 'https://rubygems.org'
 gem 'aruba', '~> 0.14.2'
+gem 'capybara', '~> 2.13.0'
+gem 'poltergeist', '~> 1.14.0'
+gem 'launchy', '~> 2.4.3'
+gem 'faker', '~> 1.7.3'
+gem 'activesupport', '~> 5.0.2'
