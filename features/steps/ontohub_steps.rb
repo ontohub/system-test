@@ -1,24 +1,24 @@
 # This isn't an example for future tests, it's just a test for the database rollback
 
 When(/^I add a user to the database$/) do
-  system(%(psql -d ontohub_test -U postgres -c "INSERT INTO users (id, real_name, email, encrypted_password) VALUES (3, 'Charlie', 'charlie@example.com', 'supersafe')"))
+  system(%(psql -d #{$database_name} -U postgres -c "INSERT INTO users (id, real_name, email, encrypted_password) VALUES (3, 'Charlie', 'charlie@example.com', 'supersafe')"))
 end
 
 Then(/^the user should be there$/) do
   steps %{
-    When I run `psql -d ontohub_test -U postgres -t -c 'SELECT * FROM users'`
-    Then the output from "psql -d ontohub_test -U postgres -t -c 'SELECT * FROM users'" should contain "charlie@example.com"
+    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'`
+    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'" should contain "charlie@example.com"
   }
 end
 
 When(/^I do a rollback$/) do
-  system(%(psql -d ontohub_test -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
+  system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
 end
 
 Then(/^the user shouldn't be there$/) do
   steps %{
-    When I run `psql -d ontohub_test -U postgres -t -c 'SELECT * FROM users'`
-    Then the output from "psql -d ontohub_test -U postgres -t -c 'SELECT * FROM users'" should not contain "charlie@example.com"
+    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'`
+    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'" should not contain "charlie@example.com"
   }
 end
 
@@ -70,7 +70,7 @@ end
 
 Then(/^the repository should be in the backend$/) do
   steps %{
-    When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:3000/ada/#{$repository_name.gsub(/\s/, '-').downcase}`
+    When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:#{$backend_port}/ada/#{$repository_name.gsub(/\s/, '-').downcase}`
     Then the exit status should be 0
     And the output should contain "200 OK"
   }
@@ -99,7 +99,7 @@ end
 
 Then(/^the changed repository should be in the backend$/) do
   steps %{
-    When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:3000/ada/repo0`
+    When I run `curl -i -L -H "Content-Type: application/json" -H "Accept: application/vnd.api+json" http://localhost:#{$backend_port}/ada/repo0`
     Then the exit status should be 0
     And the output should contain "Changed description of repo0"
   }

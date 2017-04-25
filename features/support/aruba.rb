@@ -3,10 +3,15 @@ require 'capybara/cucumber'
 require 'capybara/poltergeist'
 require 'faker'
 
+$github_ontohub = 'https://github.com/ontohub/'
+$frontend_port = 4201
+$backend_port = 3001
+$database_name = 'ontohub_system_test'
+
 Capybara.configure do |c|
   c.javascript_driver = :poltergeist
   c.default_driver = :poltergeist
-  c.app_host = 'http://localhost:4200'
+  c.app_host = "http://localhost:#{$frontend_port}"
   c.default_max_wait_time = 5
 end
 

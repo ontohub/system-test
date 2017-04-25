@@ -8,9 +8,9 @@ Feature: Ontohub
     | ../../ontohub-frontend |
     | ../../ontohub-backend |
     | ../../hets-rabbitmq-wrapper |
-  When I run `curl --connect-timeout 30 localhost:3000`
+  When I run `curl --connect-timeout 30 localhost:3001`
   Then the exit status should be 0
-  When I run `curl --connect-timeout 30 localhost:4200`
+  When I run `curl --connect-timeout 30 localhost:4201`
   Then the exit status should be 0
 
   Scenario: Successful rollback
