@@ -42,11 +42,15 @@ end
 %w(ontohub-frontend ontohub-backend hets-rabbitmq-wrapper).each do |repo|
   if File.directory?(repo)
     Dir.chdir(repo) do
-      # todo: origin/$VAR
-      system('git fetch && git reset --hard origin/master')
+      `git fetch && git reset --hard`
+      # version has to be a commit
+      version = ENV["#{repo.gsub('-', '_').upcase}_VERSION"] || 'origin/master'
+      unless system("git checkout #{version}")
+        raise "Can't checkout #{repo} version #{version}"
+      end
     end
   else
-    system("git clone --depth=1 #{$github_ontohub}#{repo} #{repo}")
+    system("git clone #{$github_ontohub}#{repo} #{repo}")
   end
 end
 
@@ -63,7 +67,8 @@ Dir.chdir('ontohub-backend') do
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
     $backend_pid = fork do
       # exec is needed to kill the process, system & %x & Open3 blocks
-      exec("RAILS_ENV=test rails s -p #{$backend_port}", out: File::NULL)
+      # We set ONTOHUB_SYSTEM_TEST=true to tell the backend to not skip reading the version from the git repository.
+      exec("ONTOHUB_SYSTEM_TEST=true RAILS_ENV=test rails s -p #{$backend_port}", out: File::NULL)
     end
   end
   wait_until_listening($backend_port)
@@ -76,7 +81,7 @@ Dir.chdir('ontohub-frontend') do
   system(%(echo '{"port": #{$frontend_port}}' > .ember-cli))
   $frontend_pid = fork do
     # exec is needed to kill the process, system & %x & Open3 blocks
-    exec('yarn start', out: File::NULL)
+    exec('./node_modules/ember-cli/bin/ember serve', out: File::NULL)
   end
   wait_until_listening($frontend_port)
 end
