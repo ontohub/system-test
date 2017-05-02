@@ -67,6 +67,7 @@ Dir.chdir('ontohub-backend') do
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
     $backend_pid = fork do
       # exec is needed to kill the process, system & %x & Open3 blocks
+      # We set ONTOHUB_SYSTEM_TEST=true to tell the backend to not skip reading the version from the git repository.
       exec("ONTOHUB_SYSTEM_TEST=true RAILS_ENV=test rails s -p #{$backend_port}", out: File::NULL)
     end
   end
