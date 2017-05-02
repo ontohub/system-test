@@ -42,7 +42,7 @@ end
 %w(ontohub-frontend ontohub-backend hets-rabbitmq-wrapper).each do |repo|
   if File.directory?(repo)
     Dir.chdir(repo) do
-      system('git fetch && git reset --hard')
+      `git fetch && git reset --hard`
       # version has to be a commit
       version = ENV["#{repo.gsub('-', '_').upcase}_VERSION"] || 'origin/master'
       unless system("git checkout #{version}")
@@ -80,7 +80,7 @@ Dir.chdir('ontohub-frontend') do
   system(%(echo '{"port": #{$frontend_port}}' > .ember-cli))
   $frontend_pid = fork do
     # exec is needed to kill the process, system & %x & Open3 blocks
-    exec('yarn start', out: File::NULL)
+    exec('./node_modules/ember-cli/bin/ember serve', out: File::NULL)
   end
   wait_until_listening($frontend_port)
 end
