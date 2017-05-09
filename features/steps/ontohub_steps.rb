@@ -40,23 +40,23 @@ Given(/^I am logged in$/) do
 end
 
 When(/^I visit the repository creation page$/) do
-  find('.top-bar-right a#new_menu_link').click
+  find('.top-bar-right a#new-menu-link').click
   click_link('New repository')
   expect(page).to have_content('Create a new repository')
 end
 
 When(/^I create a repository$/) do
   $repository_name = Faker::Name.title
-  within('fieldset#repository_new_name') do
+  within('fieldset#repository-new-name') do
     fill_in 'Name', with: $repository_name
   end
-  within('fieldset#repository_new_description') do
+  within('fieldset#repository-new-description') do
     fill_in 'Description', with: Faker::Lorem.sentence
   end
-  within('fieldset#repository_new_content_type') do
+  within('fieldset#repository-new-content-type') do
     choose('Model')
   end
-  within('fieldset#repository_new_access') do
+  within('fieldset#repository-new-access') do
     choose('Public')
   end
   click_button 'Save'
@@ -112,4 +112,14 @@ Then(/^the changed repository should be in the backend$/) do
     Then the exit status should be 0
     And the output should contain "#{@description}"
   }
+end
+
+Given(/^I visit a non\-existent page$/) do
+  visit('/non-existent')
+end
+
+Then(/^I should see the error page$/) do
+  expect(page).to have_content('Error The server responded with an error')
+  expect(page).to have_css('a', text: 'Go back')
+  expect(page).to have_link('Home')
 end
