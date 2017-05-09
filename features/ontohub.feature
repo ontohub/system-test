@@ -36,3 +36,7 @@ Feature: Ontohub
   When I change the description of the repository
   Then the changed repository should be visible in the repository overview page
   And the changed repository should be in the backend
+
+  Scenario: Error page
+  Given I visit a non-existent page
+  Then I should see the error page
