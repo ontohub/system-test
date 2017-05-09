@@ -119,5 +119,7 @@ Given(/^I visit a non\-existent page$/) do
 end
 
 Then(/^I should see the error page$/) do
-  expect(page).to have_content('Error The server responded with an error HomeGo back')
+  expect(page).to have_content('Error The server responded with an error')
+  expect(page).to have_css('a', text: 'Go back')
+  expect(page).to have_link('Home')
 end
