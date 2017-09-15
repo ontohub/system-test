@@ -1,13 +1,13 @@
 # This isn't an example for future tests, it's just a test for the database rollback
 
 When(/^I add a user to the database$/) do
-  system(%(psql -d #{$database_name} -U postgres -c "INSERT INTO users (id, real_name, email, encrypted_password) VALUES (3, 'Charlie', 'charlie@example.com', 'supersafe')"))
+  system(%(psql -d #{$database_name} -U postgres -c "INSERT INTO organizational_units (display_name, kind, slug) VALUES ('Charlie Chocolate', 'User', 'charliechocolate')"))
 end
 
 Then(/^the user should be there$/) do
   steps %{
-    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'`
-    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'" should contain "charlie@example.com"
+    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
+    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should contain "charliechocolate"
   }
 end
 
@@ -17,16 +17,38 @@ end
 
 Then(/^the user shouldn't be there$/) do
   steps %{
-    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'`
-    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM users'" should not contain "charlie@example.com"
+    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
+    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should not contain "charliechocolate"
   }
 end
 
-# Steps belong to 'create repository' scenario
+# Steps belong to 'Login' scenario
 
 Given(/^I visit the start page$/) do
   visit('/')
 end
+
+When(/^I click on the 'Sign in' button$/) do
+  find('#login-modal-sign-in-button').click
+end
+
+When(/^I enter my credentials and click the 'Sign in' button$/) do
+  pending # Write code here that turns the phrase above into concrete actions
+end
+
+Then(/^I should be logged in$/) do
+  pending # Write code here that turns the phrase above into concrete actions
+end
+
+
+
+
+
+
+
+
+
+
 
 Given(/^I am logged in$/) do
   find('.top-bar-right a#sign_in_menu_link').click

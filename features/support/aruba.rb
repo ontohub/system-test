@@ -5,8 +5,8 @@ require 'faker'
 require 'active_support/inflector'
 
 $github_ontohub = 'https://github.com/ontohub/'
-$frontend_port = 4201
-$backend_port = 3001
+$frontend_port = 3002
+$backend_port = 3003
 $database_name = 'ontohub_system_test'
 
 Capybara.configure do |c|

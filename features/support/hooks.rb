@@ -39,7 +39,7 @@ end
 
 # global before
 
-%w(ontohub-frontend ontohub-backend hets-rabbitmq-wrapper).each do |repo|
+%w(ontohub-backend hets-rabbitmq-wrapper).each do |repo|
   if File.directory?(repo)
     Dir.chdir(repo) do
       `git fetch && git reset --hard`
@@ -75,19 +75,20 @@ Dir.chdir('ontohub-backend') do
 end
 
 Dir.chdir('ontohub-frontend') do
-  system('yarn install --pure-lockfile --no-progress')
-  system('bower install --silent')
-  system("#{sed} -i \"s#'http://localhost:3000'#'http://localhost:#{$backend_port}'#g\" config/environment.js")
-  system(%(echo '{"port": #{$frontend_port}}' > .ember-cli))
+  # Frontend isnt killed properly by after hook
+  # system("kill -9 $(lsof -i tcp:#{$frontend_port} -t)")
+  system('yarn')
+  system("REACT_APP_BACKEND_HOST='#{$backend_port}' yarn build")
   $frontend_pid = fork do
     # exec is needed to kill the process, system & %x & Open3 blocks
-    exec('./node_modules/ember-cli/bin/ember serve', out: File::NULL)
+    exec("PORT=#{$frontend_port} yarn serve-built", out: File::NULL)
   end
   wait_until_listening($frontend_port)
 end
 
-After do
+After do |scenario|
   system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
+  Cucumber.wants_to_quit = true if scenario.failed?
 end
 
 # global after

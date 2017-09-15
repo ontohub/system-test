@@ -8,9 +8,9 @@ Feature: Ontohub
     | ../../ontohub-frontend |
     | ../../ontohub-backend |
     | ../../hets-rabbitmq-wrapper |
-  When I run `curl --connect-timeout 30 localhost:3001`
+  When I run `curl --connect-timeout 30 localhost:3003`
   Then the exit status should be 0
-  When I run `curl --connect-timeout 30 localhost:4201`
+  When I run `curl --connect-timeout 30 localhost:3002`
   Then the exit status should be 0
 
   Scenario: Successful rollback
@@ -20,23 +20,8 @@ Feature: Ontohub
   Then the user shouldn't be there
 
   @javascript
-  Scenario: Create a repository
+  Scenario: Login
   Given I visit the start page
-  And I am logged in
-  When I visit the repository creation page
-  And I create a repository
-  Then I should see the repository page
-  And the repository should be visible in the repository overview page
-  And the repository should be in the backend
-
-  @javascript
-  Scenario: Edit a repository
-  Given I visit the start page
-  And I am logged in and there is a repository I created
-  When I change the description of the repository
-  Then the changed repository should be visible in the repository overview page
-  And the changed repository should be in the backend
-
-  Scenario: Error page
-  Given I visit a non-existent page
-  Then I should see the error page
+  When I click on the 'Sign in' button
+  And I enter my credentials and click the 'Sign in' button
+  Then I should be logged in
