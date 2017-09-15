@@ -54,7 +54,7 @@ GEM
     multi_test (0.1.2)
     nokogiri (1.8.0)
       mini_portile2 (~> 2.2.0)
-    poltergeist (1.14.0)
+    poltergeist (1.16.0)
       capybara (~> 2.1)
       cliver (~> 0.3.1)
       websocket-driver (>= 0.2.0)
@@ -70,7 +70,7 @@ GEM
     thread_safe (0.3.6)
     tzinfo (1.2.3)
       thread_safe (~> 0.1)
-    websocket-driver (0.6.5)
+    websocket-driver (0.7.0)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.2)
     xpath (2.1.0)
@@ -85,7 +85,7 @@ DEPENDENCIES
   capybara (~> 2.15.1)
   faker (~> 1.8.4)
   launchy (~> 2.4.3)
-  poltergeist (~> 1.14.0)
+  poltergeist (~> 1.16.0)
 
 BUNDLED WITH
    1.14.6
