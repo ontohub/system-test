@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
+require 'active_support/inflector'
 require 'aruba/cucumber'
 require 'capybara/cucumber'
 require 'capybara/poltergeist'
 require 'faker'
-require 'active_support/inflector'
 
 $github_ontohub = 'https://github.com/ontohub/'
 $frontend_port = 3002
@@ -17,7 +19,7 @@ Capybara.configure do |c|
 end
 
 Capybara.register_driver :poltergeist do |app|
-  Capybara::Poltergeist::Driver.new(app, {js_errors: false})
+  Capybara::Poltergeist::Driver.new(app, js_errors: false)
 end
 
 # Capybara is smart enough to wait for ajax when not finding elements.
@@ -26,11 +28,11 @@ end
 def wait_for_ajax(wait_time = Capybara.default_max_wait_time)
   counter = 0
   # The condition only works with poltergeist/phantomjs.
-  while page.evaluate_script("$.active").to_i > 0
+  while page.evaluate_script('$.active').to_i.positive?
     counter += 1
     sleep(0.1)
     if counter >= 10 * wait_time
-      raise "AJAX request took longer than 5 seconds."
+      raise 'AJAX request took longer than 5 seconds.'
     end
   end
 end

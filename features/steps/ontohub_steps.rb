@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This isn't an example for future tests, it's just a test for the database rollback
 
 When(/^I add a user to the database$/) do
@@ -5,10 +7,10 @@ When(/^I add a user to the database$/) do
 end
 
 Then(/^the user should be there$/) do
-  steps %{
+  steps %(
     When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
     Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should contain "charliechocolate"
-  }
+  )
 end
 
 When(/^I do a rollback$/) do
@@ -16,10 +18,10 @@ When(/^I do a rollback$/) do
 end
 
 Then(/^the user shouldn't be there$/) do
-  steps %{
+  steps %(
     When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
     Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should not contain "charliechocolate"
-  }
+  )
 end
 
 # Steps belong to 'Login' scenario

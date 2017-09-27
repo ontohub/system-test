@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 require 'bundler'
+require 'pry'
 
 def kill_process(pid)
   Process.kill('KILL', pid)
@@ -10,7 +13,7 @@ def wait_until_listening(port)
 end
 
 def port_taken?(ip, port, seconds = 1)
-  Timeout::timeout(seconds) do
+  Timeout.timeout(seconds) do
     begin
       TCPSocket.new(ip, port).close
       true
@@ -25,12 +28,13 @@ end
 def which(cmd)
   exts = ENV['PATHEXT'] ? ENV['PATHEXT'].split(';') : ['']
   ENV['PATH'].split(File::PATH_SEPARATOR).each do |path|
-    exts.each { |ext|
+    exts.each do |ext|
       exe = File.join(path, "#{cmd}#{ext}")
       return exe if File.executable?(exe) && !File.directory?(exe)
-    }
+    end
   end
-  return nil
+
+  nil
 end
 
 def sed
@@ -39,7 +43,7 @@ end
 
 # global before
 
-%w(ontohub-backend hets-rabbitmq-wrapper).each do |repo|
+%w(ontohub-backend ontohub-frontend hets-rabbitmq-wrapper).each do |repo|
   if File.directory?(repo)
     Dir.chdir(repo) do
       `git fetch && git reset --hard`
@@ -81,7 +85,7 @@ Dir.chdir('ontohub-frontend') do
   system("REACT_APP_BACKEND_HOST='#{$backend_port}' yarn build")
   $frontend_pid = fork do
     # exec is needed to kill the process, system & %x & Open3 blocks
-    exec("PORT=#{$frontend_port} yarn serve-built", out: File::NULL)
+    exec("PORT=#{$frontend_port} node_modules/serve/bin/serve.js build -p $PORT", out: File::NULL)
   end
   wait_until_listening($frontend_port)
 end
