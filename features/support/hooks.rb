@@ -48,7 +48,7 @@ end
     Dir.chdir(repo) do
       `git fetch && git reset --hard`
       # version has to be a commit
-      version = ENV["#{repo.gsub('-', '_').upcase}_VERSION"] || 'origin/master'
+      version = ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
       unless system("git checkout #{version}")
         raise "Can't checkout #{repo} version #{version}"
       end
