@@ -5,21 +5,34 @@ require 'aruba/cucumber'
 require 'capybara/cucumber'
 require 'capybara/poltergeist'
 require 'faker'
+require 'selenium/webdriver'
 
 $github_ontohub = 'https://github.com/ontohub/'
 $frontend_port = 3002
 $backend_port = 3003
 $database_name = 'ontohub_system_test'
 
-Capybara.configure do |c|
-  c.javascript_driver = :poltergeist
-  c.default_driver = :poltergeist
-  c.app_host = "http://localhost:#{$frontend_port}"
-  c.default_max_wait_time = 5
+Capybara.register_driver :chrome do |app|
+  Capybara::Selenium::Driver.new(app, browser: :chrome)
 end
 
-Capybara.register_driver :poltergeist do |app|
-  Capybara::Poltergeist::Driver.new(app, js_errors: true, debug: true)
+Capybara.register_driver :headless_chrome do |app|
+  capabilities = Selenium::WebDriver::Remote::Capabilities.chrome(
+    chromeOptions: {args: %w(headless disable-gpu)}
+  )
+
+  Capybara::Selenium::Driver.new app,
+    browser: :chrome,
+    desired_capabilities: capabilities
+end
+
+Capybara.javascript_driver = :headless_chrome
+
+Capybara.configure do |c|
+  c.default_driver = :headless_chrome
+  c.javascript_driver = :headless_chrome
+  c.app_host = "http://localhost:#{$frontend_port}"
+  c.default_max_wait_time = 5
 end
 
 # Capybara is smart enough to wait for ajax when not finding elements.
