@@ -35,11 +35,14 @@ When(/^I click on the 'Sign in' button$/) do
 end
 
 When(/^I enter my credentials and click the 'Sign in' button$/) do
-  pending # Write code here that turns the phrase above into concrete actions
+  fill_in 'sign-in-username', with: 'ada'
+  fill_in 'sign-in-password', with: 'changemenow'
+  find('#sign-in-form-sign-in-button').click
 end
 
 Then(/^I should be logged in$/) do
-  pending # Write code here that turns the phrase above into concrete actions
+  find('.right.menu .ui.item.dropdown .react-gravatar').click
+  expect(page).to have_content('SIGNED IN AS')
 end
 
 

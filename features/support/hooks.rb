@@ -82,7 +82,7 @@ Dir.chdir('ontohub-frontend') do
   # Frontend isnt killed properly by after hook
   # system("kill -9 $(lsof -i tcp:#{$frontend_port} -t)")
   system('yarn')
-  system("REACT_APP_BACKEND_HOST='#{$backend_port}' yarn build")
+  system("REACT_APP_BACKEND_HOST='http://localhost:#{$backend_port}' yarn build")
   $frontend_pid = fork do
     # exec is needed to kill the process, system & %x & Open3 blocks
     exec("PORT=#{$frontend_port} node_modules/serve/bin/serve.js build -p $PORT", out: File::NULL)
@@ -92,7 +92,6 @@ end
 
 After do |scenario|
   system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
-  Cucumber.wants_to_quit = true if scenario.failed?
 end
 
 # global after
