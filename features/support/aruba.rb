@@ -3,7 +3,6 @@
 require 'active_support/inflector'
 require 'aruba/cucumber'
 require 'capybara/cucumber'
-require 'capybara/poltergeist'
 require 'faker'
 require 'selenium/webdriver'
 
@@ -40,7 +39,7 @@ end
 # yet. This is where you need to manually use wait_for_ajax.
 def wait_for_ajax(wait_time = Capybara.default_max_wait_time)
   counter = 0
-  # The condition only works with poltergeist/phantomjs.
+  # The condition only works with a javascript-running browser
   while page.evaluate_script('$.active').to_i.positive?
     counter += 1
     sleep(0.1)
