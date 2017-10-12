@@ -1,0 +1,24 @@
+Layout/AlignParameters:
+  Enabled: false
+
+Layout/DotPosition:
+  EnforcedStyle: trailing
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: no_space
+
+Metrics/LineLength:
+  Exclude:
+    - features/steps/**/*.rb
+
+Style/DoubleNegation:
+  Enabled: false
+
+Style/GlobalVars:
+  Enabled: false
+
+Style/TrailingCommaInLiteral:
+  EnforcedStyleForMultiline: comma
