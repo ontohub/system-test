@@ -43,10 +43,7 @@ end
 Then(/^I should be logged in$/) do
   find('.right.menu .ui.item.dropdown .react-gravatar').click
   expect(page).to have_content('SIGNED IN AS')
-  # expect(page).to have_content('Profile')
-  # expect(page).to have_content('Sign out')
-  # find('#global-menu-sign-out-button').click
-  #  expect(page).to have_content('Sign in')
+  expect(page).to have_content('Sign out')
 end
 
 # Steps belong to 'Logout' scenario
@@ -61,7 +58,6 @@ Given(/^I am logged in$/) do
 end
 
 When(/^I click on 'Sign out'$/) do
-  find('.right.menu .ui.item.dropdown .react-gravatar').click
   find('#global-menu-sign-out-button').click
 end
 

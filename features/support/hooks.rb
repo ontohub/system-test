@@ -43,7 +43,7 @@ end
 
 # global before
 
-%w(ontohub-backend ontohub-frontend hets-rabbitmq-wrapper).each do |repo|
+%w(ontohub-backend ontohub-frontend hets-agent).each do |repo|
   if File.directory?(repo)
     Dir.chdir(repo) do
       `git fetch && git reset --hard`
@@ -66,13 +66,18 @@ Dir.chdir('ontohub-backend') do
     system("#{sed} -i \"s#ontohub_test#ontohub_system_test#g\" config/database.yml")
     system('RAILS_ENV=test bundle exec rails db:recreate')
     system('RAILS_ENV=test bundle exec rails db:seed')
+    $dir = Dir.mktmpdir
+    system("cp -r data #{$dir}/")
     system("psql -d #{$database_name} -U postgres -f ../features/support/emaj.sql")
     # Change something in database
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
     $backend_pid = fork do
       # exec is needed to kill the process, system & %x & Open3 blocks
       # We set ONTOHUB_SYSTEM_TEST=true to tell the backend to not skip reading the version from the git repository.
-      exec("ONTOHUB_SYSTEM_TEST=true RAILS_ENV=test rails s -p #{$backend_port}", out: File::NULL)
+      exec("bundle exec rails server -p #{$backend_port}", out: File::NULL)
+    end
+    $sneakers_pid = fork do
+      exec("bundle exec rails sneakers:run", out: File::NULL)
     end
   end
   wait_until_listening($backend_port)
@@ -92,16 +97,23 @@ end
 
 After do |scenario|
   system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
+  Dir.chdir('ontohub-backend') do
+    system("cp -r #{$dir}/data .")
+  end
+  visit('/')
+  page.execute_script 'localStorage.clear()'
 end
 
 # global after
 at_exit do
   kill_process($backend_pid)
   kill_process($frontend_pid)
+  kill_process($sneakers_pid)
   Dir.chdir('ontohub-backend') do
     Bundler.with_clean_env do
       system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_stop_group('system-test');"))
       system('RAILS_ENV=test bundle exec rails db:drop')
     end
   end
+  FileUtils.rm_rf($dir)
 end
