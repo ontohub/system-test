@@ -49,12 +49,12 @@ end
 # Steps belong to 'Logout' scenario
 
 Given(/^I am logged in$/) do
-  steps %{
+  steps %(
     Given I visit the start page
     When I click on the 'Sign in' button
     And I enter my credentials and click the 'Sign in' button
     Then I should be logged in
-  }
+  )
 end
 
 When(/^I click on 'Sign out'$/) do
