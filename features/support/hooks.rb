@@ -49,7 +49,8 @@ end
       `git fetch && git reset --hard`
       # version has to be a commit
       version = ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
-      unless system("git checkout #{version}")
+      puts "Checking out #{repo} at #{version}"
+      unless system("git checkout #{version} 1> /dev/null 2> /dev/null")
         raise "Can't checkout #{repo} version #{version}"
       end
     end
@@ -70,7 +71,7 @@ Dir.chdir('ontohub-backend') do
     $data_backup_dir = Dir.mktmpdir
     system("cp -r data #{$data_backup_dir}/")
     system("psql -d #{$database_name} -U postgres "\
-           '-f ../features/support/emaj.sql')
+           '-f ../features/support/emaj.sql 1> /dev/null 2> /dev/null')
     # Change something in database
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
     $backend_pid = fork do
@@ -90,9 +91,9 @@ end
 Dir.chdir('ontohub-frontend') do
   # Frontend isnt killed properly by after hook
   # system("kill -9 $(lsof -i tcp:#{$frontend_port} -t)")
-  system('yarn')
+  system('yarn --no-progress --silent')
   system("REACT_APP_BACKEND_HOST='http://localhost:#{$backend_port}' "\
-         'yarn build')
+         'yarn build --no-progress --silent')
   $frontend_pid = fork do
     # exec is needed to kill the process, system & %x & Open3 blocks
     exec("PORT=#{$frontend_port} node_modules/serve/bin/serve.js build "\
@@ -102,8 +103,10 @@ Dir.chdir('ontohub-frontend') do
 end
 
 After do
-  system(%(psql -d #{$database_name} -U postgres -c ) +
-         %("SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
+  sql_command =
+    "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"
+  system(%(psql -d #{$database_name} -U postgres -c "#{sql_command}") +
+         %( 1> /dev/null 2> /dev/null))
   Dir.chdir('ontohub-backend') do
     system("cp -r #{$data_backup_dir}/data .")
   end
@@ -119,7 +122,8 @@ at_exit do
   Dir.chdir('ontohub-backend') do
     Bundler.with_clean_env do
       system(%(psql -d #{$database_name} -U postgres -c ) +
-             %("SELECT emaj.emaj_stop_group('system-test');"))
+             %("SELECT emaj.emaj_stop_group('system-test');" ) +
+             %(1> /dev/null))
       system('RAILS_ENV=test bundle exec rails db:drop')
     end
   end
