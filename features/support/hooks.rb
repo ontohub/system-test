@@ -77,7 +77,8 @@ Dir.chdir('ontohub-backend') do
       # exec is needed to kill the process, system & %x & Open3 blocks
       # We set ONTOHUB_SYSTEM_TEST=true to tell the backend to not skip reading
       # the version from the git repository.
-      exec("bundle exec rails server -p #{$backend_port}", out: File::NULL)
+      exec({'ONTOHUB_SYSTEM_TEST' => 'true'}, "bundle exec rails server -p " +
+      "#{$backend_port}", out: File::NULL)
     end
     $sneakers_pid = fork do
       exec('bundle exec rails sneakers:run', out: File::NULL)
