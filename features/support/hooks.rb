@@ -64,10 +64,9 @@ Dir.chdir('ontohub-backend') do
   # Most output is silenced and only shows errors and warnings
   Bundler.with_clean_env do
     system('bundle install --quiet')
-    system("#{sed} -i \"s#ontohub_test#ontohub_system_test#g\" "\
+    system("#{sed} -i \"s#ontohub_development#ontohub_system_test#g\" "\
            'config/database.yml')
-    system('RAILS_ENV=test bundle exec rails db:recreate')
-    system('RAILS_ENV=test bundle exec rails db:seed')
+    system('bundle exec rails db:recreate:seed')
     $data_backup_dir = Dir.mktmpdir
     system("cp -r data #{$data_backup_dir}/")
     system("psql -d #{$database_name} -U postgres "\
@@ -108,6 +107,7 @@ After do
   system(%(psql -d #{$database_name} -U postgres -c "#{sql_command}") +
          %( 1> /dev/null 2> /dev/null))
   Dir.chdir('ontohub-backend') do
+    system('rm -rf data')
     system("cp -r #{$data_backup_dir}/data .")
   end
   visit('/')
@@ -124,7 +124,7 @@ at_exit do
       system(%(psql -d #{$database_name} -U postgres -c ) +
              %("SELECT emaj.emaj_stop_group('system-test');" ) +
              %(1> /dev/null))
-      system('RAILS_ENV=test bundle exec rails db:drop')
+      system('bundle exec rails db:drop')
     end
   end
   FileUtils.rm_rf($data_backup_dir)
