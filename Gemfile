@@ -8,7 +8,7 @@ gem 'capybara', '~> 2.15.4'
 gem 'chromedriver-helper'
 gem 'faker', '~> 1.8.4'
 gem 'launchy', '~> 2.4.3'
-gem 'pry', '~> 0.11.2'
+gem 'pry', '~> 0.11.3'
 gem 'selenium-webdriver', '~> 3.7.0'
 
 group :development do
