@@ -12,5 +12,5 @@ gem 'pry', '~> 0.11.3'
 gem 'selenium-webdriver', '~> 3.8.0'
 
 group :development do
-  gem 'rubocop', '~> 0.51.0'
+  gem 'rubocop', '~> 0.52.0'
 end
