@@ -47,16 +47,18 @@ end
   if File.directory?(File.join(REPOS_DIRECTORY, repo))
     Dir.chdir(File.join(REPOS_DIRECTORY, repo)) do
       `git fetch && git reset --hard`
-      # version has to be a commit
-      version = ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
-      puts "Checking out #{repo} at #{version}"
-      unless system("git checkout #{version} 1> /dev/null 2> /dev/null")
-        raise "Can't checkout #{repo} version #{version}"
-      end
     end
   else
     system("git clone #{$github_ontohub}#{repo} " +
            File.join(REPOS_DIRECTORY, repo))
+  end
+  Dir.chdir(File.join(REPOS_DIRECTORY, repo)) do
+    # version has to be a commit
+    version = ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
+    puts "Checking out #{repo} at #{version}"
+    unless system("git checkout #{version} 1> /dev/null 2> /dev/null")
+      raise "Can't checkout #{repo} version #{version}"
+    end
   end
 end
 
@@ -71,7 +73,7 @@ Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
     $data_backup_dir = Dir.mktmpdir
     system("cp -r data #{$data_backup_dir}/")
     system("psql --no-psqlrc -d #{$database_name} -U postgres "\
-           '-f ../features/support/emaj.sql 1> /dev/null 2> /dev/null')
+           '-f ../../features/support/emaj.sql 1> /dev/null 2> /dev/null')
     # Change something in database
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
     $backend_pid = fork do
