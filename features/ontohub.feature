@@ -5,9 +5,9 @@ Feature: Ontohub
 
 Scenario: Run the init script
   Then the following directories should exist:
-    | ../../ontohub-frontend |
-    | ../../ontohub-backend |
-    | ../../hets-agent |
+    | ../../repositories/ontohub-frontend |
+    | ../../repositories/ontohub-backend |
+    | ../../repositories/hets-agent |
   When I run `curl --connect-timeout 30 localhost:3003`
   Then the exit status should be 0
   When I run `curl --connect-timeout 30 localhost:3002`

@@ -3,6 +3,8 @@
 require 'bundler'
 require 'pry'
 
+REPOS_DIRECTORY = 'repositories'
+
 def kill_process(pid)
   Process.kill('KILL', pid)
   Process.wait
@@ -42,8 +44,8 @@ end
 # global before
 
 %w(ontohub-backend ontohub-frontend hets-agent).each do |repo|
-  if File.directory?(repo)
-    Dir.chdir(repo) do
+  if File.directory?(File.join(REPOS_DIRECTORY, repo))
+    Dir.chdir(File.join(REPOS_DIRECTORY, repo)) do
       `git fetch && git reset --hard`
       # version has to be a commit
       version = ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
@@ -53,11 +55,12 @@ end
       end
     end
   else
-    system("git clone #{$github_ontohub}#{repo} #{repo}")
+    system("git clone #{$github_ontohub}#{repo} " +
+           File.join(REPOS_DIRECTORY, repo))
   end
 end
 
-Dir.chdir('ontohub-backend') do
+Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
   # See Bundler Issue https://github.com/bundler/bundler/issue/698 & man page
   # Most output is silenced and only shows errors and warnings
   Bundler.with_clean_env do
@@ -85,7 +88,7 @@ Dir.chdir('ontohub-backend') do
   wait_until_listening($backend_port)
 end
 
-Dir.chdir('ontohub-frontend') do
+Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-frontend')) do
   # Frontend isnt killed properly by after hook
   # system("kill -9 $(lsof -i tcp:#{$frontend_port} -t)")
   system('yarn --no-progress --silent')
@@ -104,7 +107,7 @@ After do
     "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"
   system(%(psql --no-psqlrc -d #{$database_name} -U postgres) +
          %( -c "#{sql_command}" 1> /dev/null 2> /dev/null))
-  Dir.chdir('ontohub-backend') do
+  Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
     system('rm -rf data')
     system("cp -r #{$data_backup_dir}/data .")
   end
@@ -117,7 +120,7 @@ at_exit do
   kill_process($backend_pid)
   kill_process($frontend_pid)
   kill_process($sneakers_pid)
-  Dir.chdir('ontohub-backend') do
+  Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
     Bundler.with_clean_env do
       system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c ) +
              %("SELECT emaj.emaj_stop_group('system-test');" ) +
