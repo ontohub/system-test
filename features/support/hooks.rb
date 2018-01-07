@@ -69,7 +69,7 @@ Dir.chdir('ontohub-backend') do
     system('bundle exec rails db:recreate:seed')
     $data_backup_dir = Dir.mktmpdir
     system("cp -r data #{$data_backup_dir}/")
-    system("psql -d #{$database_name} -U postgres "\
+    system("psql --no-psqlrc -d #{$database_name} -U postgres "\
            '-f ../features/support/emaj.sql 1> /dev/null 2> /dev/null')
     # Change something in database
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
@@ -104,7 +104,7 @@ end
 After do
   sql_command =
     "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"
-  system(%(psql -d #{$database_name} -U postgres -c "#{sql_command}") +
+  system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c "#{sql_command}") +
          %( 1> /dev/null 2> /dev/null))
   Dir.chdir('ontohub-backend') do
     system('rm -rf data')
@@ -121,7 +121,7 @@ at_exit do
   kill_process($sneakers_pid)
   Dir.chdir('ontohub-backend') do
     Bundler.with_clean_env do
-      system(%(psql -d #{$database_name} -U postgres -c ) +
+      system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c ) +
              %("SELECT emaj.emaj_stop_group('system-test');" ) +
              %(1> /dev/null))
       system('bundle exec rails db:drop')
