@@ -62,6 +62,17 @@ end
   end
 end
 
+%w(ontohub-backend hets-agent).each do |repo|
+  Dir.chdir(File.join(REPOS_DIRECTORY, repo)) do
+    settings_yml = <<~YML
+    rabbitmq:
+      prefix: ontohub_system_test
+      exchange: ontohub_system_test
+    YML
+    File.write('config/settings.local.yml', settings_yml)
+  end
+end
+
 Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
   # See Bundler Issue https://github.com/bundler/bundler/issue/698 & man page
   # Most output is silenced and only shows errors and warnings
