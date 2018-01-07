@@ -8,6 +8,7 @@ INSERT INTO emaj.emaj_group_def (grpdef_group, grpdef_schema, grpdef_tblseq)
          ('system-test', 'public', 'organizations'),
          ('system-test', 'public', 'organization_memberships'),
          ('system-test', 'public', 'repositories'),
+         ('system-test', 'public', 'api_keys'),
          ('system-test', 'public', 'url_mappings'),
          ('system-test', 'public', 'repository_memberships'),
          ('system-test', 'public', 'file_versions'),
@@ -21,7 +22,7 @@ INSERT INTO emaj.emaj_group_def (grpdef_group, grpdef_schema, grpdef_tblseq)
          ('system-test', 'public', 'logic_mappings'),
          ('system-test', 'public', 'signatures'),
          ('system-test', 'public', 'signature_morphisms'),
-         ('system-test', 'public', 'cons_statuses'),
+         ('system-test', 'public', 'conservativity_statuses'),
          ('system-test', 'public', 'documents'),
          ('system-test', 'public', 'document_links'),
          ('system-test', 'public', 'file_ranges'),
@@ -44,6 +45,8 @@ INSERT INTO emaj.emaj_group_def (grpdef_group, grpdef_schema, grpdef_tblseq)
          ('system-test', 'public', 'sine_symbol_premise_triggers'),
          ('system-test', 'public', 'sine_symbol_commonnesses'),
          ('system-test', 'public', 'reasoning_attempts'),
+         ('system-test', 'public', 'proof_attempts'),
+         ('system-test', 'public', 'consistency_check_attempts'),
          ('system-test', 'public', 'generated_axioms'),
          ('system-test', 'public', 'reasoner_outputs');
 SELECT emaj.emaj_create_group('system-test');
