@@ -1,4 +1,5 @@
-CREATE EXTENSION dblink;
+CREATE EXTENSION IF NOT EXISTS dblink;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE EXTENSION emaj;
 INSERT INTO emaj.emaj_group_def (grpdef_group, grpdef_schema, grpdef_tblseq)
   VALUES ('system-test', 'public', 'organizational_units'),
