@@ -14,12 +14,10 @@ end
 
 def port_taken?(ip, port, seconds = 1)
   Timeout.timeout(seconds) do
-    begin
-      TCPSocket.new(ip, port).close
-      true
-    rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-      false
-    end
+    TCPSocket.new(ip, port).close
+    true
+  rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+    false
   end
 rescue Timeout::Error
   false
@@ -77,8 +75,8 @@ Dir.chdir('ontohub-backend') do
       # exec is needed to kill the process, system & %x & Open3 blocks
       # We set ONTOHUB_SYSTEM_TEST=true to tell the backend to not skip reading
       # the version from the git repository.
-      exec({'ONTOHUB_SYSTEM_TEST' => 'true'}, "bundle exec rails server -p " +
-      "#{$backend_port}", out: File::NULL)
+      exec({'ONTOHUB_SYSTEM_TEST' => 'true'}, 'bundle exec rails server -p ' +
+           $backend_port.to_s, out: File::NULL)
     end
     $sneakers_pid = fork do
       exec('bundle exec rails sneakers:run', out: File::NULL)
@@ -104,8 +102,8 @@ end
 After do
   sql_command =
     "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"
-  system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c "#{sql_command}") +
-         %( 1> /dev/null 2> /dev/null))
+  system(%(psql --no-psqlrc -d #{$database_name} -U postgres) +
+         %( -c "#{sql_command}" 1> /dev/null 2> /dev/null))
   Dir.chdir('ontohub-backend') do
     system('rm -rf data')
     system("cp -r #{$data_backup_dir}/data .")
