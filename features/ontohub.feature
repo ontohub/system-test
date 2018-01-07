@@ -16,8 +16,10 @@ Scenario: Run the init script
 Scenario: Successful rollback
   When I add a user to the database
   Then the user should be there
+  And the user 'ada' should be there
   When I do a rollback
   Then the user shouldn't be there
+  And the user 'ada' should be there
 
 @javascript
 Scenario: Login

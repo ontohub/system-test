@@ -24,6 +24,13 @@ Then(/^the user shouldn't be there$/) do
   )
 end
 
+Then(/^the user 'ada' should be there$/) do
+  steps %(
+    When I run `psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
+    Then the output from "psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should contain "ada"
+  )
+end
+
 # Steps belong to 'Login' scenario
 
 Given(/^I visit the start page$/) do
