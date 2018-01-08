@@ -6,7 +6,7 @@ require 'pry'
 REPOS_DIRECTORY = 'repositories'
 
 def kill_process(pid)
-  Process.kill('KILL', pid)
+  Process.kill('TERM', pid)
   Process.wait
 end
 
@@ -130,9 +130,16 @@ end
 
 # global after
 at_exit do
-  kill_process($backend_pid)
-  kill_process($frontend_pid)
-  kill_process($sneakers_pid)
+  Thread.new { kill_process($backend_pid) }
+  Thread.new { kill_process($frontend_pid) }
+  Thread.new { kill_process($sneakers_pid) }
+  Thread.new do
+    # After a grace period, send TERM to the sneakers process again to finally
+    # terminate it and its children.
+    sleep 10
+    kill_process($sneakers_pid)
+  end
+  Thread.list.each { |thread| thread.join if thread != Thread.current }
   Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
     Bundler.with_clean_env do
       system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c ) +
