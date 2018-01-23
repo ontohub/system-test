@@ -3,24 +3,31 @@
 # This isn't an example for future tests, it's just a test for the database rollback
 
 When(/^I add a user to the database$/) do
-  system(%(psql -d #{$database_name} -U postgres -c "INSERT INTO organizational_units (display_name, kind, slug) VALUES ('Charlie Chocolate', 'User', 'charliechocolate')"))
+  system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c "INSERT INTO organizational_units (display_name, kind, slug) VALUES ('Charlie Chocolate', 'User', 'charliechocolate')"))
 end
 
 Then(/^the user should be there$/) do
   steps %(
-    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
-    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should contain "charliechocolate"
+    When I run `psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
+    Then the output from "psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should contain "charliechocolate"
   )
 end
 
 When(/^I do a rollback$/) do
-  system(%(psql -d #{$database_name} -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
+  system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"))
 end
 
 Then(/^the user shouldn't be there$/) do
   steps %(
-    When I run `psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
-    Then the output from "psql -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should not contain "charliechocolate"
+    When I run `psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
+    Then the output from "psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should not contain "charliechocolate"
+  )
+end
+
+Then(/^the user 'ada' should be there$/) do
+  steps %(
+    When I run `psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'`
+    Then the output from "psql --no-psqlrc -d #{$database_name} -U postgres -t -c 'SELECT * FROM organizational_units'" should contain "ada"
   )
 end
 

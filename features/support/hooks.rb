@@ -3,8 +3,10 @@
 require 'bundler'
 require 'pry'
 
+REPOS_DIRECTORY = 'repositories'
+
 def kill_process(pid)
-  Process.kill('KILL', pid)
+  Process.kill('TERM', pid)
   Process.wait
 end
 
@@ -14,12 +16,10 @@ end
 
 def port_taken?(ip, port, seconds = 1)
   Timeout.timeout(seconds) do
-    begin
-      TCPSocket.new(ip, port).close
-      true
-    rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-      false
-    end
+    TCPSocket.new(ip, port).close
+    true
+  rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+    false
   end
 rescue Timeout::Error
   false
@@ -44,22 +44,36 @@ end
 # global before
 
 %w(ontohub-backend ontohub-frontend hets-agent).each do |repo|
-  if File.directory?(repo)
-    Dir.chdir(repo) do
+  if File.directory?(File.join(REPOS_DIRECTORY, repo))
+    Dir.chdir(File.join(REPOS_DIRECTORY, repo)) do
       `git fetch && git reset --hard`
-      # version has to be a commit
-      version = ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
-      puts "Checking out #{repo} at #{version}"
-      unless system("git checkout #{version} 1> /dev/null 2> /dev/null")
-        raise "Can't checkout #{repo} version #{version}"
-      end
     end
   else
-    system("git clone #{$github_ontohub}#{repo} #{repo}")
+    system("git clone #{$github_ontohub}#{repo} " +
+           File.join(REPOS_DIRECTORY, repo))
+  end
+  Dir.chdir(File.join(REPOS_DIRECTORY, repo)) do
+    # version has to be a commit
+    version = ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
+    puts "Checking out #{repo} at #{version}"
+    unless system("git checkout #{version} 1> /dev/null 2> /dev/null")
+      raise "Can't checkout #{repo} version #{version}"
+    end
   end
 end
 
-Dir.chdir('ontohub-backend') do
+%w(ontohub-backend hets-agent).each do |repo|
+  Dir.chdir(File.join(REPOS_DIRECTORY, repo)) do
+    settings_yml = <<~YML
+    rabbitmq:
+      prefix: ontohub_system_test
+      exchange: ontohub_system_test
+    YML
+    File.write('config/settings.local.yml', settings_yml)
+  end
+end
+
+Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
   # See Bundler Issue https://github.com/bundler/bundler/issue/698 & man page
   # Most output is silenced and only shows errors and warnings
   Bundler.with_clean_env do
@@ -69,16 +83,16 @@ Dir.chdir('ontohub-backend') do
     system('bundle exec rails db:recreate:seed')
     $data_backup_dir = Dir.mktmpdir
     system("cp -r data #{$data_backup_dir}/")
-    system("psql -d #{$database_name} -U postgres "\
-           '-f ../features/support/emaj.sql 1> /dev/null 2> /dev/null')
+    system("psql --no-psqlrc -d #{$database_name} -U postgres "\
+           '-f ../../features/support/emaj.sql 1> /dev/null 2> /dev/null')
     # Change something in database
     # Waiting for eugenk system('RAILS_ENV=test bundle exec rails repo:clean')
     $backend_pid = fork do
       # exec is needed to kill the process, system & %x & Open3 blocks
       # We set ONTOHUB_SYSTEM_TEST=true to tell the backend to not skip reading
       # the version from the git repository.
-      exec({'ONTOHUB_SYSTEM_TEST' => 'true'}, "bundle exec rails server -p " +
-      "#{$backend_port}", out: File::NULL)
+      exec({'ONTOHUB_SYSTEM_TEST' => 'true'}, 'bundle exec rails server -p ' +
+           $backend_port.to_s, out: File::NULL)
     end
     $sneakers_pid = fork do
       exec('bundle exec rails sneakers:run', out: File::NULL)
@@ -87,7 +101,7 @@ Dir.chdir('ontohub-backend') do
   wait_until_listening($backend_port)
 end
 
-Dir.chdir('ontohub-frontend') do
+Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-frontend')) do
   # Frontend isnt killed properly by after hook
   # system("kill -9 $(lsof -i tcp:#{$frontend_port} -t)")
   system('yarn --no-progress --silent')
@@ -104,9 +118,9 @@ end
 After do
   sql_command =
     "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"
-  system(%(psql -d #{$database_name} -U postgres -c "#{sql_command}") +
-         %( 1> /dev/null 2> /dev/null))
-  Dir.chdir('ontohub-backend') do
+  system(%(psql --no-psqlrc -d #{$database_name} -U postgres) +
+         %( -c "#{sql_command}" 1> /dev/null 2> /dev/null))
+  Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
     system('rm -rf data')
     system("cp -r #{$data_backup_dir}/data .")
   end
@@ -116,12 +130,19 @@ end
 
 # global after
 at_exit do
-  kill_process($backend_pid)
-  kill_process($frontend_pid)
-  kill_process($sneakers_pid)
-  Dir.chdir('ontohub-backend') do
+  Thread.new { kill_process($backend_pid) }
+  Thread.new { kill_process($frontend_pid) }
+  Thread.new { kill_process($sneakers_pid) }
+  Thread.new do
+    # After a grace period, send TERM to the sneakers process again to finally
+    # terminate it and its children.
+    sleep 10
+    kill_process($sneakers_pid)
+  end
+  Thread.list.each { |thread| thread.join if thread != Thread.current }
+  Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
     Bundler.with_clean_env do
-      system(%(psql -d #{$database_name} -U postgres -c ) +
+      system(%(psql --no-psqlrc -d #{$database_name} -U postgres -c ) +
              %("SELECT emaj.emaj_stop_group('system-test');" ) +
              %(1> /dev/null))
       system('bundle exec rails db:drop')
