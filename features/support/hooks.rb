@@ -78,8 +78,12 @@ Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
   # Most output is silenced and only shows errors and warnings
   Bundler.with_clean_env do
     system('bundle install --quiet')
+    system('echo before:')
+    system('cat config/database.yml')
     system("#{sed} -i \"s#ontohub_development#ontohub_system_test#g\" "\
            'config/database.yml')
+    system('echo after:')
+    system('cat config/database.yml')
     system('bundle exec rails db:recreate:seed')
     $data_backup_dir = Dir.mktmpdir
     system("cp -r data #{$data_backup_dir}/")
