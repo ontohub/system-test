@@ -37,10 +37,6 @@ def which(cmd)
   nil
 end
 
-def sed
-  which('gsed') ? 'gsed' : 'sed'
-end
-
 # global before
 
 %w(ontohub-backend ontohub-frontend hets-agent).each do |repo|
@@ -78,12 +74,9 @@ Dir.chdir(File.join(REPOS_DIRECTORY, 'ontohub-backend')) do
   # Most output is silenced and only shows errors and warnings
   Bundler.with_clean_env do
     system('bundle install --quiet')
-    system('echo before:')
-    system('cat config/database.yml')
-    system("#{sed} -i \"s#ontohub_development#ontohub_system_test#g\" "\
-           'config/database.yml')
-    system('echo after:')
-    system('cat config/database.yml')
+    database_yml = File.read('config/database.yml')
+    File.write('config/database.yml',
+               database_yml.gsub('ontohub_development', 'ontohub_system_test'))
     system('bundle exec rails db:recreate:seed')
     $data_backup_dir = Dir.mktmpdir
     system("cp -r data #{$data_backup_dir}/")
