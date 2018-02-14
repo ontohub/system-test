@@ -61,11 +61,8 @@ RSpec.describe 'System-Test' do
     end
 
     it 'There is no additional user in the database' do
-      command =
-        %(psql --no-psqlrc -d #{database_name} -U postgres -t -c ) +
-        %("SELECT * FROM organizational_units;")
-      sql_result = `#{command}`
-      expect(sql_result).not_to match(/#{user_name}/)
+      expect(sql_output('SELECT * FROM organizational_units;')).
+        not_to match(/#{user_name}/)
     end
 
     context 'When I change repository contents' do
@@ -95,18 +92,14 @@ RSpec.describe 'System-Test' do
     context 'When I add a user to the database' do
       before do
         command =
-          %(psql --no-psqlrc -d #{database_name} -U postgres -c ) +
-          %("INSERT INTO organizational_units (display_name, kind, slug) ) +
-          %(VALUES ('#{user_name}', 'User', '#{slug}');")
-        `#{command}`
+          %(INSERT INTO organizational_units (display_name, kind, slug) ) +
+          %(VALUES ('#{user_name}', 'User', '#{slug}');)
+        sql_output(command)
       end
 
       it 'the user is in the database' do
-        command =
-          %(psql --no-psqlrc -d #{database_name} -U postgres -t -c) +
-          %("SELECT * FROM organizational_units;")
-        sql_result = `#{command}`
-        expect(sql_result).to match(/#{user_name}/)
+        expect(sql_output('SELECT * FROM organizational_units;')).
+          to match(/#{user_name}/)
       end
 
       context 'When I do the rollback' do
@@ -115,19 +108,13 @@ RSpec.describe 'System-Test' do
         end
 
         it 'the user is not in the database any more' do
-          command =
-            %(psql --no-psqlrc -d #{database_name} -U postgres -t -c ) +
-            %("SELECT * FROM organizational_units;")
-          sql_result = `#{command}`
-          expect(sql_result).not_to match(/#{user_name}/)
+          expect(sql_output('SELECT * FROM organizational_units;')).
+            not_to match(/#{user_name}/)
         end
 
         it 'but a seed user is in the database' do
-          command =
-            %(psql --no-psqlrc -d #{database_name} -U postgres -t -c ) +
-            %("SELECT * FROM organizational_units;")
-          sql_result = `#{command}`
-          expect(sql_result).to match(/ada/)
+          expect(sql_output('SELECT * FROM organizational_units;')).
+            to match(/ada/)
         end
       end
     end
