@@ -76,7 +76,7 @@ RSpec.describe 'System-Test' do
 
       context 'When I do the rollback' do
         before do
-          reset_backend
+          rollback_backend
         end
 
         it 'the change in the repository is gone' do
@@ -104,7 +104,7 @@ RSpec.describe 'System-Test' do
 
       context 'When I do the rollback' do
         before do
-          reset_backend
+          rollback_backend
         end
 
         it 'the user is not in the database any more' do

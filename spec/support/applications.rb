@@ -25,11 +25,11 @@ module Applications
 
   module InstanceMethods
     def rollback
-      reset_backend
-      reset_frontend
+      rollback_backend
+      rollback_frontend
     end
 
-    def reset_backend
+    def rollback_backend
       # Rollback the database
       sql_command =
         "SELECT emaj.emaj_rollback_group('system-test', 'EMAJ_LAST_MARK');"
@@ -42,7 +42,7 @@ module Applications
       end
     end
 
-    def reset_frontend
+    def rollback_frontend
       visit('/')
       page.execute_script 'localStorage.clear()'
     end

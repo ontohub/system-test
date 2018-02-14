@@ -2,7 +2,7 @@
 
 RSpec.describe 'Account', type: :feature, js: true do
   before do
-    reset_frontend
+    rollback_frontend
   end
 
   describe 'Sign in' do
