@@ -51,7 +51,7 @@ module AccountHelper
 
     def raw_api_call(raw_query, variables_hash, authorization = nil)
       command =
-        %(curl '#{backend_url}/graphql' ) +
+        %(curl -s '#{backend_url}/graphql' ) +
         (authorization ? "-H 'Authorization: #{authorization}' " : '') +
         %(-H 'Content-Type: application/json' ) +
         %(-H 'Accept: application/json' ) +

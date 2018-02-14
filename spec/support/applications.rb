@@ -97,6 +97,7 @@ module Applications
       checkout_proper_versions
       configure_applications
       setup_backend_and_indexer
+      setup_bundler
       setup_frontend
       seed
       start_backend
@@ -133,7 +134,9 @@ module Applications
         repo_directory = REPOSITORY_ROOT.join(repo)
         Dir.chdir(repo_directory.to_s) do
           settings_yml = <<~YML
+            data_directory: ../../tmp/data
             git_shell:
+              path: ../git-shell/bin/git-shell-travis.sh
               copy_authorized_keys_executable: bin/copy_authorized_keys#{ENV['TRAVIS'] ? '_travis' : ''}
             rabbitmq:
               virtual_host: ontohub_system_test
@@ -155,20 +158,35 @@ module Applications
             file_inreplace('config/database.yml',
                            /database: .*$/,
                            "database: #{DATABASE_NAME}")
-            # Install dependencies
-            system('bundle install --quiet')
           end
         end
       end
 
-      # Use the development secrets in the production environment
       Dir.chdir(REPOSITORY_ROOT.join('ontohub-backend')) do
+        # Use the development secrets in the production environment
         secrets_file = 'config/secrets.yml'
         unless File.read(secrets_file).lines.last.start_with?('# PREPARED')
           file_inreplace(secrets_file, /^development:/, '_______')
           file_inreplace(secrets_file, /^production:/, 'development:')
           file_inreplace(secrets_file, /^_______/, 'production:')
           File.write(secrets_file, "#{File.read(secrets_file)}\n# PREPARED")
+        end
+
+        # Create the data directory
+        FileUtils.mkdir_p('../../tmp/data')
+        warn `ls -la "#{REPOSITORY_ROOT.join('ontohub-backend', '../../tmp/data')}"`
+      end
+    end
+
+    def setup_bundler
+      %w(ontohub-backend hets-agent indexer git-shell).each do |repo|
+        Dir.chdir(REPOSITORY_ROOT.join(repo).to_s) do
+          # See Bundler Issue https://github.com/bundler/bundler/issue/698 & man
+          # page.
+          Bundler.with_clean_env do
+            # Install dependencies
+            system('bundle install --quiet')
+          end
         end
       end
     end
