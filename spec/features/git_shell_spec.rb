@@ -9,7 +9,7 @@ if ENV['TRAVIS']
     describe 'git clone' do
       before(:context) do
         @temp_directory = Dir.mktmpdir
-        @repository = 'ada/fixtures.git'
+        @repository = 'ada/fixtures'
       end
 
       after(:context) do
@@ -28,8 +28,8 @@ if ENV['TRAVIS']
 
           it 'the user can clone a git repository' do
             Dir.chdir(@temp_directory) do
-              warn `git clone travis@localhost:#{repository}.git`
-              # expect(system("git clone travis@localhost:#{repository}.git")).
+              warn `git clone travis@localhost:#{repository}`
+              # expect(system("git clone travis@localhost:#{repository}")).
               #   to be(true)
             end
           end
@@ -67,7 +67,7 @@ if ENV['TRAVIS']
           let(:repository) { 'bob/my-public-repository' }
 
           it 'the user can clone a git repository' do
-            expect(system("git clone travis@localhost:#{repository}.git")).
+            expect(system("git clone travis@localhost:#{repository}")).
               to be(true)
           end
 
@@ -104,12 +104,12 @@ if ENV['TRAVIS']
           end
 
           it 'the user cannot clone a git repository' do
-            expect(system("git clone travis@localhost:#{repository}.git")).
+            expect(system("git clone travis@localhost:#{repository}")).
               to be(false)
           end
 
           it 'the user is presented an error message' do
-            expect(`git clone travis@localhost:#{repository}.git`).
+            expect(`git clone travis@localhost:#{repository}`).
               to match(/#{message}/)
           end
 

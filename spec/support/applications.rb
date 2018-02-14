@@ -13,6 +13,7 @@ module Applications
   BACKEND_PORT = 3003
   DATABASE_NAME = 'ontohub_system_test'
 
+  DATA_DIR = Pathname.new(__FILE__).join('../../../tmp/data')
   DATA_BACKUP_DIR = Dir.mktmpdir
 
   ENVIRONMENT = {
@@ -36,10 +37,8 @@ module Applications
       system(%(psql --no-psqlrc -d #{DATABASE_NAME} -U postgres) +
              %( -c "#{sql_command}" 1> /dev/null 2> /dev/null))
       # Rollback the data directory
-      Dir.chdir(REPOSITORY_ROOT.join('ontohub-backend').to_s) do
-        system('rm -rf data')
-        system("cp -r #{DATA_BACKUP_DIR}/data .")
-      end
+      DATA_DIR.rmtree
+      system(%(cp -r "#{DATA_BACKUP_DIR}/data" "#{DATA_DIR.dirname}"))
     end
 
     def rollback_frontend
@@ -61,6 +60,10 @@ module Applications
 
     def repository_root
       REPOSITORY_ROOT
+    end
+
+    def data_dir
+      DATA_DIR
     end
   end
 
@@ -112,34 +115,43 @@ module Applications
         repo_directory = REPOSITORY_ROOT.join(repo)
         if repo_directory.directory?
           Dir.chdir(repo_directory.to_s) do
-            `git fetch && git reset --hard`
+            `git fetch`
+            `git reset --hard`
           end
         else
           system("git clone #{GITHUB_ONTOHUB}#{repo} #{repo_directory}")
         end
+
+        silenced = ' 1> /dev/null 2> /dev/null'
         Dir.chdir(repo_directory.to_s) do
           # version has to be a commit
           version =
             ENV["#{repo.tr('-', '_').upcase}_VERSION"] || 'origin/master'
-          puts "Checking out #{repo} at #{version}"
-          unless system("git checkout #{version} 1> /dev/null 2> /dev/null")
+          $stdout.puts "Checking out #{repo} at #{version}"
+          unless system("git checkout #{version}#{silenced}")
             raise "Can't checkout #{repo} version #{version}"
           end
+          version_is_branch =
+            system("git show-ref refs/heads/#{version}#{silenced}")
+          `git reset --hard origin/#{version}` if version_is_branch
+          $stdout.puts("Using #{repo} revision #{`git log -1 --format=%H`}")
         end
       end
     end
 
     def configure_applications
-      %w(ontohub-backend hets-agent indexer).each do |repo|
+      %w(ontohub-backend hets-agent indexer git-shell).each do |repo|
         repo_directory = REPOSITORY_ROOT.join(repo)
         Dir.chdir(repo_directory.to_s) do
           settings_yml = <<~YML
-            data_directory: ../../tmp/data
+            data_directory: #{DATA_DIR}
             git_shell:
               path: ../git-shell/bin/git-shell-travis.sh
               copy_authorized_keys_executable: bin/copy_authorized_keys#{ENV['TRAVIS'] ? '_travis' : ''}
             rabbitmq:
               virtual_host: ontohub_system_test
+            backend:
+              url: http://localhost:#{BACKEND_PORT}
             hets:
               path: #{`which hets`}
           YML
@@ -171,10 +183,6 @@ module Applications
           file_inreplace(secrets_file, /^_______/, 'production:')
           File.write(secrets_file, "#{File.read(secrets_file)}\n# PREPARED")
         end
-
-        # Create the data directory
-        FileUtils.mkdir_p('../../tmp/data')
-        warn `ls -la "#{REPOSITORY_ROOT.join('ontohub-backend', '../../tmp/data')}"`
       end
     end
 
@@ -192,6 +200,15 @@ module Applications
     end
 
     def seed
+      begin
+        DATA_DIR.rmtree
+        # rubocop:disable Lint/HandleExceptions
+      rescue Errno::ENOENT
+        # rubocop:enable Lint/HandleExceptions
+        # We just want to have a clean state. The directory is created in the
+        # next step.
+      end
+      DATA_DIR.mkpath
       Dir.chdir(REPOSITORY_ROOT.join('ontohub-backend').to_s) do
         # See Bundler Issue https://github.com/bundler/bundler/issue/698 & man
         # page.
@@ -199,7 +216,7 @@ module Applications
           # Create seed data
           system("#{ENVIRONMENT_PREFIX} bundle exec rails db:recreate:seed")
           # Snapshot seeded data
-          system("cp -r data #{DATA_BACKUP_DIR}/")
+          system(%(cp -r "#{DATA_DIR}" "#{DATA_BACKUP_DIR}/"))
         end
       end
       system("psql --no-psqlrc -d #{DATABASE_NAME} -U postgres "\

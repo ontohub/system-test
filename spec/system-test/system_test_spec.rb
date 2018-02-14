@@ -50,7 +50,7 @@ RSpec.describe 'System-Test' do
 
   describe 'Rollback invoked manually', order: :defined do
     let(:changed_repository) do
-      repository_root.join('ontohub-backend/data/git/ada/fixtures.git')
+      data_dir.join('git/ada/fixtures.git')
     end
     let(:additional_file) { changed_repository.join('_file') }
     let(:user_name) { Faker::Name.name.tr("'", '-') }
@@ -70,7 +70,7 @@ RSpec.describe 'System-Test' do
         File.write(additional_file.to_s, 'created')
       end
 
-      it 'there repository is changed' do
+      it 'the repository is changed' do
         expect(additional_file.file?).to be(true)
       end
 
