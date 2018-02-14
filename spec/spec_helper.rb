@@ -15,4 +15,9 @@ Dir.glob('spec/shared_examples/**/*.rb').each do |file|
 end
 
 RSpec.configure do |config|
+  config.order = :random
+  # Configure faker to use the RSpec seed
+  Faker::Config.random = Random.new(config.seed)
+  # Configure ruby to use the RSpec seed for randomization
+  srand config.seed
 end
