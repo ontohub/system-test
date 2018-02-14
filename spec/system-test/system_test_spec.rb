@@ -53,7 +53,7 @@ RSpec.describe 'System-Test' do
       repository_root.join('ontohub-backend/data/git/ada/fixtures.git')
     end
     let(:additional_file) { changed_repository.join('_file') }
-    let(:user_name) { Faker::Name.name }
+    let(:user_name) { Faker::Name.name.tr("'", '-') }
     let(:slug) { Faker::Internet.slug(user_name, '-') }
 
     it' There is no additional file in the beginning' do

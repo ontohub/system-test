@@ -106,7 +106,8 @@ module Applications
     end
 
     def checkout_proper_versions
-      %w(ontohub-backend ontohub-frontend hets-agent indexer).each do |repo|
+      %w(ontohub-backend ontohub-frontend hets-agent indexer git-shell).
+        each do |repo|
         repo_directory = REPOSITORY_ROOT.join(repo)
         if repo_directory.directory?
           Dir.chdir(repo_directory.to_s) do
@@ -132,6 +133,8 @@ module Applications
         repo_directory = REPOSITORY_ROOT.join(repo)
         Dir.chdir(repo_directory.to_s) do
           settings_yml = <<~YML
+            git_shell:
+              copy_authorized_keys_executable: bin/copy_authorized_keys#{ENV['TRAVIS'] ? '_travis' : ''}
             rabbitmq:
               virtual_host: ontohub_system_test
             hets:
