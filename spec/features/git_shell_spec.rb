@@ -28,7 +28,7 @@ if ENV['TRAVIS']
 
           it 'the user can clone a git repository' do
             Dir.chdir(@temp_directory) do
-              warn `git clone travis@localhost:#{repository}`
+              warn "#{' ' * 10} system-test: git clone output: #{`git clone travis@localhost:#{repository}`}"
               # expect(system("git clone travis@localhost:#{repository}")).
               #   to be(true)
             end
@@ -37,9 +37,9 @@ if ENV['TRAVIS']
           it 'and there is actually a local git repository' do
             Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
               command = 'git rev-parse --git-dir 1> /dev/null 2> /dev/null'
-              warn `pwd`
-              warn `ls -la`
-              warn command
+              warn "#{' ' * 10} system-test: pwd: #{`pwd`}"
+              warn "#{' ' * 10} system-test: ls -la: #{`ls -la`}"
+              warn "#{' ' * 10} system-test: command: #{command}"
               expect(system(command)).to be(true)
             end
           end
@@ -50,7 +50,7 @@ if ENV['TRAVIS']
               `touch #{file}`
               `git add #{file}`
               `git commit -m "Add #{file}"`
-              warn `git push`
+              warn "#{' ' * 10} system-test: git push: #{`git push`}"
               # expect(system('git push')).to be(true)
             end
           end
