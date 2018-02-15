@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
+# These tests can only run on travis because they need a specially formatted
+# ~/.ssh/authorized_keys file as well as an adjusted ssh config.
+# Adjusting this on a development machine could break an existing ssh config.
 if ENV['TRAVIS']
+  # The examples in the sub-contexts need to be run in the defined order.
+  # They must not be randomized. This is done to increase the performance.
+  # Otherwise, repositories would need to be cloned again and again.
   RSpec.describe 'GitShell' do
     before(:context) do
       @temp_directory = Dir.mktmpdir
