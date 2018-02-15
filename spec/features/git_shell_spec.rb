@@ -32,7 +32,8 @@ if ENV['TRAVIS']
 
       before(:context) do
         backend_local_repository = "#{data_dir.join('git', @repository)}.git"
-        `git clone "#{backend_local_repository}" "#{@control_repository}"`
+        capture3('git', 'clone', backend_local_repository,
+                 @control_repository)
       end
 
       after(:context) do
@@ -143,7 +144,8 @@ if ENV['TRAVIS']
 
       before(:context) do
         backend_local_repository = "#{data_dir.join('git', @repository)}.git"
-        `git clone "#{backend_local_repository}" "#{@control_repository}"`
+        capture3('git', 'clone', backend_local_repository,
+                 @control_repository)
       end
 
       after(:context) do
@@ -270,7 +272,7 @@ if ENV['TRAVIS']
       before(:context) do
         backend_local_repository = "#{data_dir.join('git', @repository)}.git"
         capture3('git', 'clone', backend_local_repository,
-                @control_repository)
+                 @control_repository)
       end
 
       after(:context) do
@@ -308,7 +310,7 @@ if ENV['TRAVIS']
         # Setup the clone
         backend_local_repository = "#{data_dir.join('git', @repository)}.git"
         capture3('git', 'clone', backend_local_repository,
-                @client_repository)
+                 @client_repository)
         Dir.chdir(@client_repository) do
           config = '.git/config'
           File.write(config, File.read(config).
@@ -416,7 +418,7 @@ if ENV['TRAVIS']
       before(:context) do
         backend_local_repository = "#{data_dir.join('git', @repository)}.git"
         capture3('git', 'clone', backend_local_repository,
-                @control_repository)
+                 @control_repository)
       end
 
       after(:context) do
