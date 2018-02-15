@@ -41,6 +41,7 @@ if ENV['TRAVIS']
               warn "#{' ' * 10} system-test: ls -la: #{`ls -la`}"
               warn "#{' ' * 10} system-test: command: #{command}"
               expect(system(command)).to be(true)
+              warn "#{' ' * 10} system-test: example finished"
             end
           end
 
@@ -51,108 +52,111 @@ if ENV['TRAVIS']
               `git add #{file}`
               `git commit -m "Add #{file}"`
               warn "#{' ' * 10} system-test: git push: #{`git push`}"
+              warn "#{' ' * 10} system-test: example finished"
               # expect(system('git push')).to be(true)
             end
           end
 
           it 'the user can not force-push to the repository' do
             Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-              `git commit -m "Amend the commit." --amend`
+              # `git commit -m "Amend the commit." --amend`
+              warn "#{' ' * 10} system-test: git commit --amend: #{`git commit -m "Amend the commit." --amend`}"
               expect(system('git push')).to be(false)
+              warn "#{' ' * 10} system-test: example finished"
             end
           end
         end
 
-        context 'When a repository is readable, but not writable' do
-          let(:repository) { 'bob/my-public-repository' }
+        # context 'When a repository is readable, but not writable' do
+        #   let(:repository) { 'bob/my-public-repository' }
 
-          it 'the user can clone a git repository' do
-            expect(system("git clone travis@localhost:#{repository}")).
-              to be(true)
-          end
+        #   it 'the user can clone a git repository' do
+        #     expect(system("git clone travis@localhost:#{repository}")).
+        #       to be(true)
+        #   end
 
-          it 'and there is actually a local git repository' do
-            Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-              command = 'git rev-parse --git-dir 1> /dev/null 2> /dev/null'
-              expect(system(command)).to be(true)
-            end
-          end
+        #   it 'and there is actually a local git repository' do
+        #     Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
+        #       command = 'git rev-parse --git-dir 1> /dev/null 2> /dev/null'
+        #       expect(system(command)).to be(true)
+        #     end
+        #   end
 
-          it 'the user cannot push to the repository' do
-            Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-              file = 'new_file'
-              `touch #{file}`
-              `git add #{file}`
-              `git commit -m "Add #{file}"`
-              expect(system('git push')).to be(false)
-            end
-          end
+        #   it 'the user cannot push to the repository' do
+        #     Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
+        #       file = 'new_file'
+        #       `touch #{file}`
+        #       `git add #{file}`
+        #       `git commit -m "Add #{file}"`
+        #       expect(system('git push')).to be(false)
+        #     end
+        #   end
 
-          it 'the user is presented an error message' do
-            Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-              message =
-                'Unauthorized: You are unauthorized to write to this repository'
-              expect(`git push`).to match(/#{message}/i)
-            end
-          end
-        end
+        #   it 'the user is presented an error message' do
+        #     Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
+        #       message =
+        #         'Unauthorized: You are unauthorized to write to this repository'
+        #       expect(`git push`).to match(/#{message}/i)
+        #     end
+        #   end
+        # end
 
-        shared_examples 'no read access or inexistant' do
-          let(:message) do
-            'The Repository has not been found '\
-            'or you are unauthorized to read it.'
-          end
+        # shared_examples 'no read access or inexistant' do
+        #   let(:message) do
+        #     'The Repository has not been found '\
+        #     'or you are unauthorized to read it.'
+        #   end
 
-          it 'the user cannot clone a git repository' do
-            expect(system("git clone travis@localhost:#{repository}")).
-              to be(false)
-          end
+        #   it 'the user cannot clone a git repository' do
+        #     expect(system("git clone travis@localhost:#{repository}")).
+        #       to be(false)
+        #   end
 
-          it 'the user is presented an error message' do
-            expect(`git clone travis@localhost:#{repository}`).
-              to match(/#{message}/)
-          end
+        #   it 'the user is presented an error message' do
+        #     expect(`git clone travis@localhost:#{repository}`).
+        #       to match(/#{message}/)
+        #   end
 
-          context 'When the user tries to push to that repository' do
-            before(:context) do
-              Dir.chdir(@temp_directory) do
-                system("git init #{repository.split('/').last}")
+        #   context 'When the user tries to push to that repository' do
+        #     before(:context) do
+        #       Dir.chdir(@temp_directory) do
+        #         system("git init #{repository.split('/').last}")
 
-              end
-            end
+        #       end
+        #     end
 
-            it 'there is no local git repository' do
-              expect(File.exist?(File.join(@temp_directory, 'fixtures'))).
-                to be(false)
-            end
+        #     it 'there is no local git repository' do
+        #       expect(File.exist?(File.join(@temp_directory, 'fixtures'))).
+        #         to be(false)
+        #     end
 
-            it 'the user cannot push to the repository' do
-              Dir.chdir(File.join(@temp_directory, 'fixtures')) do
-                file = 'new_file'
-                `touch #{file}`
-                `git add #{file}`
-                `git commit -m "Add #{file}"`
-                expect(system('git push')).to be(false)
-              end
-            end
+        #     it 'the user cannot push to the repository' do
+        #       Dir.chdir(File.join(@temp_directory, 'fixtures')) do
+        #         file = 'new_file'
+        #         `touch #{file}`
+        #         `git add #{file}`
+        #         `git commit -m "Add #{file}"`
+        #         expect(system('git push')).to be(false)
+        #       end
+        #     end
 
-            it 'the user is presented an error message' do
-              Dir.chdir(File.join(@temp_directory, 'fixtures')) do
-                expect(`git push`).to match(/#{message}/i)
-              end
-            end
-          end
-        end
+        #     it 'the user is presented an error message' do
+        #       Dir.chdir(File.join(@temp_directory, 'fixtures')) do
+        #         expect(`git push`).to match(/#{message}/i)
+        #       end
+        #     end
+        #   end
+        # end
 
-        context 'When a repository is neither readable nor writable' do
-          let(:repository) { 'cam/my-private-repository' }
-          include_examples 'no read access or inexistant'
-        end
+        # context 'When a repository is neither readable nor writable' do
+        #   let(:repository) { 'cam/my-private-repository' }
+        #   include_examples 'no read access or inexistant'
+        # end
 
-        context 'When a repository does not exist' do
-          let(:repository) { 'my/absent-repository' }
-          include_examples 'no read access or inexistant'
-        end
+        # context 'When a repository does not exist' do
+        #   let(:repository) { 'my/absent-repository' }
+        #   include_examples 'no read access or inexistant'
+        # end
       end
     end
   end
