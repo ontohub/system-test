@@ -3,200 +3,541 @@
 if ENV['TRAVIS']
   RSpec.describe 'GitShell' do
     before(:context) do
-      rollback_backend
+      @temp_directory = Dir.mktmpdir
+      @client_repository = File.join(@temp_directory, 'client')
+
+      @control_repository = File.join(@temp_directory, 'control')
+
+      @file_changed_on_server = 'file_changed_on_server'
+      @file_changed_on_client = 'file_changed_on_client'
+      @file_changed_on_client_by_force = 'file_changed_on_client_by_force'
     end
 
-    describe 'git clone' do
+    after(:context) do
+      FileUtils.rm_rf(@temp_directory)
+    end
+
+    context 'When a repository is writable for the user', order: :defined do
       before(:context) do
         @repository = 'ada/fixtures'
+      end
 
-        @client_temp_directory = Dir.mktmpdir
-        @client_repository = File.join(@client_temp_directory, 'client')
+      before(:context) do
+        rollback_backend
+      end
 
-        @control_temp_directory = Dir.mktmpdir
-        @control_repository = File.join(@control_temp_directory, 'control')
+      after(:context) do
+        rollback_backend
+      end
 
+      before(:context) do
         backend_local_repository = "#{data_dir.join('git', @repository)}.git"
         `git clone "#{backend_local_repository}" "#{@control_repository}"`
       end
 
       after(:context) do
-        FileUtils.rm_rf(@client_temp_directory)
-        FileUtils.rm_rf(File.dirname(@control_repository))
+        FileUtils.rm_rf(@client_repository)
+        FileUtils.rm_rf(@control_repository)
       end
 
-      context 'After a user saves a public key' do
-        before(:context) do
-          @user = 'ada'
-          token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
-          save_public_key(token, travis_public_key)
+      before(:context) do
+        @user = 'ada'
+        token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
+        save_public_key(token, travis_public_key)
+      end
+
+      it 'the user can clone the git repository' do
+        Dir.chdir(@temp_directory) do
+          _, _, status = capture3('git', 'clone',
+                                  "travis@localhost:#{@repository}",
+                                  @client_repository)
+          expect(status).to be_success
+        end
+      end
+
+      it 'and there is actually a local git repository' do
+        Dir.chdir(@client_repository) do
+          _, _, status = capture3('git', 'rev-parse', '--git-dir')
+          expect(status).to be_success
+        end
+      end
+
+      it 'the user can pull server-side changes' do
+        Dir.chdir(@control_repository) do
+          capture3('touch', @file_changed_on_server)
+          capture3('git', 'add', @file_changed_on_server)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_server}")
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'push')
         end
 
-        context 'When a repository is writable for the user', order: :defined do
-          let(:repository) { 'ada/fixtures' }
+        Dir.chdir(@client_repository) do
+          _, _, status = capture3('git', 'pull')
+          expect(status).to be_success
+        end
+      end
 
-          it 'the user can clone a git repository' do
-            Dir.chdir(@client_temp_directory) do
-              command = %(git clone "travis@localhost:#{repository}" ) +
-                        %("#{@client_repository}")
-              expect(system(command)).to be(true)
-            end
-          end
+      it 'the user actually receives the server-side changes' do
+        Dir.chdir(@client_repository) do
+          expect(File.exist?(@file_changed_on_server)).to be(true)
+        end
+      end
 
-          it 'and there is actually a local git repository' do
-            Dir.chdir(@client_repository) do
-              command = 'git rev-parse --git-dir 1> /dev/null 2> /dev/null'
-              expect(system(command)).to be(true)
-            end
-          end
+      it 'the user can push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('touch', @file_changed_on_client)
+          capture3('git', 'add', @file_changed_on_client)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_client}")
+          _, _, status = capture3('git', 'push')
+          expect(status).to be_success
+        end
+      end
 
-          context 'after the repository has changed on the server',
-            order: :defined do
-            before(:context) do
-              Dir.chdir(@control_repository) do
-                @file_changed_on_server = 'changed_on_server'
-                `touch #{@file_changed_on_server}`
-                `git add #{@file_changed_on_server}`
-                `git commit -m "Add #{@file_changed_on_server}"`
-                `git push`
-              end
-            end
+      it 'and the change is actually on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client)).to be(true)
+        end
+      end
 
-            it 'the user can pull new changes' do
-              expect(system('git pull')).to be(true)
-            end
+      it 'the user cannot force-push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('git', 'commit', '-am', 'Amend the commit', '--amend')
+          capture3('touch', @file_changed_on_client_by_force)
+          capture3('git', 'add', @file_changed_on_client_by_force)
+          capture3('git', 'commit', '-m',
+                   "Add #{@file_changed_on_client_by_force}")
+          _, _, status = capture3('git', 'push', '--force')
+          expect(status).not_to be_success
+        end
+      end
 
-            it 'the user actually receives the changes' do
-              expect(File.exist?(@file_changed_on_server)).to be(true)
-            end
-          end
+      it 'the user is presented the correct error message on force-push' do
+        message = "Force-pushing (`git push --force') is not permitted"
+        Dir.chdir(@client_repository) do
+          _, stderr, = Open3.capture3('git', 'push', '--force')
+          expect(stderr).to include(message)
+        end
+      end
 
-          it 'the user can push to the repository' do
-            Dir.chdir(@client_repository) do
-              @file_changed_on_client = 'new_file'
-              `touch #{@file_changed_on_client}`
-              `git add #{@file_changed_on_client}`
-              `git commit -m "Add #{@file_changed_on_client}"`
-              expect(system('git push')).to be(true)
-            end
-          end
+      it 'and the change is not on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client_by_force)).to be(false)
+        end
+      end
+    end
 
-          it 'and the change is actually on the server' do
-            Dir.chdir(@control_repository) do
-              `git pull`
-              expect(File.exist?(@file_changed_on_client)).to be(true)
-            end
-          end
+    context 'When a repository is readable but not writable,',
+      order: :defined do
+      before(:context) do
+        @repository = 'bob/my-public-repository'
+      end
 
-          it 'the user can not force-push to the repository' do
-            Dir.chdir(@client_repository) do
-              `git commit -am "Amend the commit." --amend`
-              @file_changed_on_client2 = 'new_file'
-              `touch #{@file_changed_on_client2}`
-              `git add #{@file_changed_on_client2}`
-              `git commit -m "Add #{@file_changed_on_client2}"`
-              expect(system('git push')).to be(false)
-            end
-          end
+      before(:context) do
+        rollback_backend
+      end
 
-          it 'and the change is not on the server' do
-            Dir.chdir(@control_repository) do
-              `git pull`
-              expect(File.exist?(@file_changed_on_client2)).to be(false)
-            end
-          end
+      after(:context) do
+        rollback_backend
+      end
+
+      before(:context) do
+        backend_local_repository = "#{data_dir.join('git', @repository)}.git"
+        `git clone "#{backend_local_repository}" "#{@control_repository}"`
+      end
+
+      after(:context) do
+        FileUtils.rm_rf(@client_repository)
+        FileUtils.rm_rf(@control_repository)
+      end
+
+      before(:context) do
+        @user = 'ada'
+        token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
+        save_public_key(token, travis_public_key)
+      end
+
+      it 'the user can clone the git repository' do
+        Dir.chdir(@temp_directory) do
+          _, _, status = capture3('git', 'clone',
+                                  "travis@localhost:#{@repository}",
+                                  @client_repository)
+          expect(status).to be_success
+        end
+      end
+
+      it 'and there is actually a local git repository' do
+        Dir.chdir(@client_repository) do
+          _, _, status = capture3('git', 'rev-parse', '--git-dir')
+          expect(status).to be_success
+        end
+      end
+
+      it 'the user can pull server-side changes' do
+        Dir.chdir(@control_repository) do
+          capture3('touch', @file_changed_on_server)
+          capture3('git', 'add', @file_changed_on_server)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_server}")
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'push')
         end
 
-        # context 'When a repository is readable, but not writable' do
-        #   let(:repository) { 'bob/my-public-repository' }
+        Dir.chdir(@client_repository) do
+          _, _, status = capture3('git', 'pull')
+          expect(status).to be_success
+        end
+      end
 
-        #   it 'the user can clone a git repository' do
-        #     expect(system("git clone travis@localhost:#{repository}")).
-        #       to be(true)
-        #   end
+      it 'the user actually receives the server-side changes' do
+        Dir.chdir(@client_repository) do
+          expect(File.exist?(@file_changed_on_server)).to be(true)
+        end
+      end
 
-        #   it 'and there is actually a local git repository' do
-        #     Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-        #       command = 'git rev-parse --git-dir 1> /dev/null 2> /dev/null'
-        #       expect(system(command)).to be(true)
-        #     end
-        #   end
+      it 'the user cannot push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('touch', @file_changed_on_client)
+          capture3('git', 'add', @file_changed_on_client)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_client}")
+          _, _, status = capture3('git', 'push')
+          expect(status).not_to be_success
+        end
+      end
 
-        #   it 'the user cannot push to the repository' do
-        #     Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-        #       file = 'new_file'
-        #       `touch #{file}`
-        #       `git add #{file}`
-        #       `git commit -m "Add #{file}"`
-        #       expect(system('git push')).to be(false)
-        #     end
-        #   end
+      it 'the user is presented the correct error message on push' do
+        message =
+          'Unauthorized: You are unauthorized to write to this repository.'
+        Dir.chdir(@client_repository) do
+          _, stderr, = capture3('git', 'push')
+          expect(stderr).to match(/#{message}/)
+        end
+      end
 
-        #   it 'the user is presented an error message' do
-        #     Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-        #       message =
-        #         'Unauthorized: You are unauthorized to write to this repository'
-        #       expect(`git push`).to match(/#{message}/i)
-        #     end
-        #   end
-        # end
+      it 'and the change is not on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client)).to be(false)
+        end
+      end
 
-        # shared_examples 'no read access or inexistant' do
-        #   let(:message) do
-        #     'The Repository has not been found '\
-        #     'or you are unauthorized to read it.'
-        #   end
+      it 'the user cannot force-push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('git', 'commit', '-am', 'Amend the commit', '--amend')
+          capture3('touch', @file_changed_on_client_by_force)
+          capture3('git', 'add', @file_changed_on_client_by_force)
+          capture3('git', 'commit', '-m',
+                   "Add #{@file_changed_on_client_by_force}")
+          _, _, status = capture3('git', 'push', '--force')
+          expect(status).not_to be_success
+        end
+      end
 
-        #   it 'the user cannot clone a git repository' do
-        #     expect(system("git clone travis@localhost:#{repository}")).
-        #       to be(false)
-        #   end
+      it 'the user is presented the correct error message on force-push' do
+        message =
+          'Unauthorized: You are unauthorized to write to this repository.'
+        Dir.chdir(@client_repository) do
+          _, stderr, = Open3.capture3('git', 'push', '--force')
+          expect(stderr).to include(message)
+        end
+      end
 
-        #   it 'the user is presented an error message' do
-        #     expect(`git clone travis@localhost:#{repository}`).
-        #       to match(/#{message}/)
-        #   end
+      it 'and the change is not on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client_by_force)).to be(false)
+        end
+      end
+    end
 
-        #   context 'When the user tries to push to that repository' do
-        #     before(:context) do
-        #       Dir.chdir(@temp_directory) do
-        #         system("git init #{repository.split('/').last}")
+    context 'When a repository is neither readable nor writable',
+      order: :defined do
+      before(:context) do
+        @repository = 'cam/my-private-repository'
+      end
+      # include_examples 'no read access or inexistant'
+      let(:message) do
+        'The Repository has not been found '\
+        'or you are unauthorized to read it.'
+      end
 
-        #       end
-        #     end
+      before(:context) do
+        rollback_backend
+      end
 
-        #     it 'there is no local git repository' do
-        #       expect(File.exist?(File.join(@temp_directory, 'fixtures'))).
-        #         to be(false)
-        #     end
+      after(:context) do
+        rollback_backend
+      end
 
-        #     it 'the user cannot push to the repository' do
-        #       Dir.chdir(File.join(@temp_directory, 'fixtures')) do
-        #         file = 'new_file'
-        #         `touch #{file}`
-        #         `git add #{file}`
-        #         `git commit -m "Add #{file}"`
-        #         expect(system('git push')).to be(false)
-        #       end
-        #     end
+      before(:context) do
+        backend_local_repository = "#{data_dir.join('git', @repository)}.git"
+        capture3('git', 'clone', backend_local_repository,
+                @control_repository)
+      end
 
-        #     it 'the user is presented an error message' do
-        #       Dir.chdir(File.join(@temp_directory, 'fixtures')) do
-        #         expect(`git push`).to match(/#{message}/i)
-        #       end
-        #     end
-        #   end
-        # end
+      after(:context) do
+        FileUtils.rm_rf(@client_repository)
+        FileUtils.rm_rf(@control_repository)
+      end
 
-        # context 'When a repository is neither readable nor writable' do
-        #   let(:repository) { 'cam/my-private-repository' }
-        #   include_examples 'no read access or inexistant'
-        # end
+      before(:context) do
+        @user = 'ada'
+        token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
+        save_public_key(token, travis_public_key)
+      end
 
-        # context 'When a repository does not exist' do
-        #   let(:repository) { 'my/absent-repository' }
-        #   include_examples 'no read access or inexistant'
-        # end
+      it 'the user cannot clone the git repository' do
+        Dir.chdir(@temp_directory) do
+          _, _, status = capture3('git', 'clone',
+                                  "travis@localhost:#{@repository}",
+                                  @client_repository)
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on clone' do
+        _, stderr, = capture3('git', 'clone', "localhost:#{@repository}",
+                              @client_repository)
+        expect(stderr).to match(/#{message}/)
+      end
+
+      it 'and there is no local git repository' do
+        expect(File.exist?(@client_repository)).to be(false)
+      end
+
+      it 'if the repository was cloned before it was deleted or made private, '\
+         'the user cannot pull server-side changes' do
+        # Setup the clone
+        backend_local_repository = "#{data_dir.join('git', @repository)}.git"
+        capture3('git', 'clone', backend_local_repository,
+                @client_repository)
+        Dir.chdir(@client_repository) do
+          config = '.git/config'
+          File.write(config, File.read(config).
+                       gsub(backend_local_repository,
+                            "travis@localhost:#{@repository}"))
+        end
+
+        # Make server-side changes
+        Dir.chdir(@control_repository) do
+          capture3('touch', @file_changed_on_server)
+          capture3('git', 'add', @file_changed_on_server)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_server}")
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'push')
+        end
+
+        # Pull via ssh
+        Dir.chdir(@client_repository) do
+          _, _, status = capture3('git', 'pull')
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on pull' do
+        Dir.chdir(@client_repository) do
+          _, stderr, = capture3('git', 'pull')
+          expect(stderr).to match(/#{message}/)
+        end
+      end
+
+      it 'the user does not receive the server-side changes' do
+        Dir.chdir(@client_repository) do
+          expect(File.exist?(@file_changed_on_server)).to be(false)
+        end
+      end
+
+      it 'the user cannot push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('touch', @file_changed_on_client)
+          capture3('git', 'add', @file_changed_on_client)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_client}")
+          _, _, status = capture3('git', 'push')
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on push' do
+        Dir.chdir(@client_repository) do
+          _, stderr, = capture3('git', 'push')
+          expect(stderr).to match(/#{message}/)
+        end
+      end
+
+      it 'and the change is not on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client)).to be(false)
+        end
+      end
+
+      it 'the user cannot force-push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('git', 'commit', '-am', 'Amend the commit', '--amend')
+          capture3('touch', @file_changed_on_client_by_force)
+          capture3('git', 'add', @file_changed_on_client_by_force)
+          capture3('git', 'commit', '-m',
+                   "Add #{@file_changed_on_client_by_force}")
+          _, _, status = capture3('git', 'push', '--force')
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on force-push' do
+        Dir.chdir(@client_repository) do
+          _, stderr, = Open3.capture3('git', 'push', '--force')
+          expect(stderr).to include(message)
+        end
+      end
+
+      it 'and the change is not on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client_by_force)).to be(false)
+        end
+      end
+    end
+
+    context 'When a repository does not exist', order: :defined do
+      before(:context) do
+        @repository = 'cam/my-private-repository'
+      end
+      # include_examples 'no read access or inexistant'
+      let(:message) do
+        'The Repository has not been found '\
+        'or you are unauthorized to read it.'
+      end
+
+      before(:context) do
+        rollback_backend
+      end
+
+      after(:context) do
+        rollback_backend
+      end
+
+      before(:context) do
+        backend_local_repository = "#{data_dir.join('git', @repository)}.git"
+        capture3('git', 'clone', backend_local_repository,
+                @control_repository)
+      end
+
+      after(:context) do
+        FileUtils.rm_rf(@client_repository)
+        FileUtils.rm_rf(@control_repository)
+      end
+
+      before(:context) do
+        @user = 'ada'
+        token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
+        save_public_key(token, travis_public_key)
+      end
+
+      it 'the user cannot clone the git repository' do
+        Dir.chdir(@temp_directory) do
+          _, _, status = capture3('git', 'clone',
+                                  "travis@localhost:#{@repository}",
+                                  @client_repository)
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on clone' do
+        _, stderr, = capture3('git', 'clone', "localhost:#{@repository}",
+                              @client_repository)
+        expect(stderr).to match(/#{message}/)
+      end
+
+      it 'and there is no local git repository' do
+        expect(File.exist?(@client_repository)).to be(false)
+      end
+
+      it 'if the repository was cloned before it was deleted or made private, '\
+         'the user cannot pull server-side changes' do
+        # Setup the clone
+        backend_local_repository = "#{data_dir.join('git', @repository)}.git"
+        capture3('git', 'clone', backend_local_repository,
+                @client_repository)
+        Dir.chdir(@client_repository) do
+          config = '.git/config'
+          File.write(config, File.read(config).
+                       gsub(backend_local_repository,
+                            "travis@localhost:#{@repository}"))
+        end
+
+        # Make server-side changes
+        Dir.chdir(@control_repository) do
+          capture3('touch', @file_changed_on_server)
+          capture3('git', 'add', @file_changed_on_server)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_server}")
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'push')
+        end
+
+        # Pull via ssh
+        Dir.chdir(@client_repository) do
+          _, _, status = capture3('git', 'pull')
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on pull' do
+        Dir.chdir(@client_repository) do
+          _, stderr, = capture3('git', 'pull')
+          expect(stderr).to match(/#{message}/)
+        end
+      end
+
+      it 'the user does not receive the server-side changes' do
+        Dir.chdir(@client_repository) do
+          expect(File.exist?(@file_changed_on_server)).to be(false)
+        end
+      end
+
+      it 'the user cannot push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('touch', @file_changed_on_client)
+          capture3('git', 'add', @file_changed_on_client)
+          capture3('git', 'commit', '-m', "Add #{@file_changed_on_client}")
+          _, _, status = capture3('git', 'push')
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on push' do
+        Dir.chdir(@client_repository) do
+          _, stderr, = capture3('git', 'push')
+          expect(stderr).to match(/#{message}/)
+        end
+      end
+
+      it 'and the change is not on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client)).to be(false)
+        end
+      end
+
+      it 'the user cannot force-push to the repository' do
+        Dir.chdir(@client_repository) do
+          capture3('git', 'commit', '-am', 'Amend the commit', '--amend')
+          capture3('touch', @file_changed_on_client_by_force)
+          capture3('git', 'add', @file_changed_on_client_by_force)
+          capture3('git', 'commit', '-m',
+                   "Add #{@file_changed_on_client_by_force}")
+          _, _, status = capture3('git', 'push', '--force')
+          expect(status).not_to be_success
+        end
+      end
+
+      it 'the user is presented the correct error message on force-push' do
+        Dir.chdir(@client_repository) do
+          _, stderr, = Open3.capture3('git', 'push', '--force')
+          expect(stderr).to include(message)
+        end
+      end
+
+      it 'and the change is not on the server' do
+        Dir.chdir(@control_repository) do
+          capture3({'SSH_CONNECTION' => 'true'}, 'git', 'pull')
+          expect(File.exist?(@file_changed_on_client_by_force)).to be(false)
+        end
       end
     end
   end
