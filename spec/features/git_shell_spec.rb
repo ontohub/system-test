@@ -8,61 +8,101 @@ if ENV['TRAVIS']
 
     describe 'git clone' do
       before(:context) do
-        @temp_directory = Dir.mktmpdir
         @repository = 'ada/fixtures'
+
+        @client_temp_directory = Dir.mktmpdir
+        @client_repository = File.join(@client_temp_directory, 'client')
+
+        @control_temp_directory = Dir.mktmpdir
+        @control_repository = File.join(@control_temp_directory, 'control')
+
+        backend_local_repository = "#{data_dir.join('git', @repository)}.git"
+        `git clone "#{backend_local_repository}" "#{@control_repository}"`
       end
 
       after(:context) do
-        FileUtils.rm_rf(@temp_directory)
+        FileUtils.rm_rf(@client_temp_directory)
+        FileUtils.rm_rf(File.dirname(@control_repository))
       end
 
-      context 'After a user saves a public key', order: :defined do
+      context 'After a user saves a public key' do
         before(:context) do
           @user = 'ada'
           token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
           save_public_key(token, travis_public_key)
         end
 
-        context 'When a repository is writable for the user' do
+        context 'When a repository is writable for the user', order: :defined do
           let(:repository) { 'ada/fixtures' }
 
           it 'the user can clone a git repository' do
-            Dir.chdir(@temp_directory) do
-              warn "#{' ' * 10} system-test: git clone output: #{`git clone travis@localhost:#{repository}`}"
-              # expect(system("git clone travis@localhost:#{repository}")).
-              #   to be(true)
+            Dir.chdir(@client_temp_directory) do
+              command = %(git clone "travis@localhost:#{repository}" ) +
+                        %("#{@client_repository}")
+              expect(system(command)).to be(true)
             end
           end
 
           it 'and there is actually a local git repository' do
-            Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
+            Dir.chdir(@client_repository) do
               command = 'git rev-parse --git-dir 1> /dev/null 2> /dev/null'
-              warn "#{' ' * 10} system-test: pwd: #{`pwd`}"
-              warn "#{' ' * 10} system-test: ls -la: #{`ls -la`}"
-              warn "#{' ' * 10} system-test: command: #{command}"
               expect(system(command)).to be(true)
-              warn "#{' ' * 10} system-test: example finished"
+            end
+          end
+
+          context 'after the repository has changed on the server',
+            order: :defined do
+            before(:context) do
+              Dir.chdir(@control_repository) do
+                @file_changed_on_server = 'changed_on_server'
+                `touch #{@file_changed_on_server}`
+                `git add #{@file_changed_on_server}`
+                `git commit -m "Add #{@file_changed_on_server}"`
+                `git push`
+              end
+            end
+
+            it 'the user can pull new changes' do
+              expect(system('git pull')).to be(true)
+            end
+
+            it 'the user actually receives the changes' do
+              expect(File.exist?(@file_changed_on_server)).to be(true)
             end
           end
 
           it 'the user can push to the repository' do
-            Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-              file = 'new_file'
-              `touch #{file}`
-              `git add #{file}`
-              `git commit -m "Add #{file}"`
-              warn "#{' ' * 10} system-test: git push: #{`git push`}"
-              warn "#{' ' * 10} system-test: example finished"
-              # expect(system('git push')).to be(true)
+            Dir.chdir(@client_repository) do
+              @file_changed_on_client = 'new_file'
+              `touch #{@file_changed_on_client}`
+              `git add #{@file_changed_on_client}`
+              `git commit -m "Add #{@file_changed_on_client}"`
+              expect(system('git push')).to be(true)
+            end
+          end
+
+          it 'and the change is actually on the server' do
+            Dir.chdir(@control_repository) do
+              `git pull`
+              expect(File.exist?(@file_changed_on_client)).to be(true)
             end
           end
 
           it 'the user can not force-push to the repository' do
-            Dir.chdir(File.join(@temp_directory, repository.split('/').last)) do
-              # `git commit -m "Amend the commit." --amend`
-              warn "#{' ' * 10} system-test: git commit --amend: #{`git commit -m "Amend the commit." --amend`}"
+            Dir.chdir(@client_repository) do
+              `git commit -am "Amend the commit." --amend`
+              @file_changed_on_client2 = 'new_file'
+              `touch #{@file_changed_on_client2}`
+              `git add #{@file_changed_on_client2}`
+              `git commit -m "Add #{@file_changed_on_client2}"`
               expect(system('git push')).to be(false)
-              warn "#{' ' * 10} system-test: example finished"
+            end
+          end
+
+          it 'and the change is not on the server' do
+            Dir.chdir(@control_repository) do
+              `git pull`
+              expect(File.exist?(@file_changed_on_client2)).to be(false)
             end
           end
         end
