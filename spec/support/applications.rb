@@ -115,11 +115,12 @@ module Applications
         repo_directory = REPOSITORY_ROOT.join(repo)
         if repo_directory.directory?
           Dir.chdir(repo_directory.to_s) do
-            `git fetch`
-            `git reset --hard`
+            Open3.capture3('git', 'fetch')
+            Open3.capture3('git', 'reset', '--hard')
           end
         else
-          system("git clone #{GITHUB_ONTOHUB}#{repo} #{repo_directory}")
+          Open3.capture3('git', 'clone', "#{GITHUB_ONTOHUB}#{repo}",
+                         repo_directory)
         end
 
         silenced = ' 1> /dev/null 2> /dev/null'
@@ -187,7 +188,9 @@ module Applications
     end
 
     def setup_bundler
+      $stdout.puts 'Installing the bundles...'
       %w(ontohub-backend hets-agent indexer git-shell).each do |repo|
+        $stdout.puts "#{repo}: bundle install..."
         Dir.chdir(REPOSITORY_ROOT.join(repo).to_s) do
           # See Bundler Issue https://github.com/bundler/bundler/issue/698 & man
           # page.
