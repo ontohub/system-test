@@ -196,7 +196,7 @@ module Applications
           # page.
           Bundler.with_clean_env do
             # Install dependencies
-            system('bundle install --quiet')
+            Open3.capture3('bundle', 'install')
           end
         end
       end
