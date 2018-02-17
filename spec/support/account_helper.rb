@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module AccountHelper
+  # Helper methods to use in the specs to sign in and call the API.
   module InstanceMethods
     def sign_in(user, password)
       page.visit('/')

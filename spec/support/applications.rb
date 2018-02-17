@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# This sets up the applications under test.
 # rubocop:disable Metrics/AbcSize
 # rubocop:disable Metrics/MethodLength
 # rubocop:disable Metrics/ModuleLength
@@ -24,6 +25,7 @@ module Applications
   }.freeze
   ENVIRONMENT_PREFIX = ENVIRONMENT.map { |k, v| %(#{k}="#{v}") }.join(' ')
 
+  # Helper methods to use in the tests to control application data.
   module InstanceMethods
     def rollback
       rollback_backend
