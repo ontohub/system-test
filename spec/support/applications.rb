@@ -150,7 +150,7 @@ module Applications
             data_directory: #{DATA_DIR}
             git_shell:
               path: ../git-shell/bin/git-shell-travis.sh
-              copy_authorized_keys_executable: bin/copy_authorized_keys#{ENV['TRAVIS'] ? '_travis' : ''}
+              copy_authorized_keys_executable: #{ENV['TRAVIS'] ? '../../spec/support/copy_authorized_keys_travis' : 'bin/copy_authorized_keys'}
             rabbitmq:
               virtual_host: ontohub_system_test
             backend:
