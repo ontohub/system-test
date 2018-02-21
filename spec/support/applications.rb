@@ -122,7 +122,7 @@ module Applications
           end
         else
           Open3.capture3('git', 'clone', "#{GITHUB_ONTOHUB}#{repo}",
-                         repo_directory)
+                         repo_directory.to_s)
         end
 
         silenced = ' 1> /dev/null 2> /dev/null'
