@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cp -f $HOME/system-test/tmp/data/.ssh/authorized_keys $HOME/.ssh/
+chown travis $HOME/.ssh/authorized_keys
+chmod 600 $HOME/.ssh/authorized_keys
