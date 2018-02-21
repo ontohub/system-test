@@ -50,7 +50,16 @@ if ENV['TRAVIS']
       before(:context) do
         @user = 'ada'
         token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
-        save_public_key(token, travis_public_key)
+        warn 'save_public_key:'
+        warn save_public_key(token, travis_public_key)
+        warn 'authorized_keys:'
+        system('cat ~/.ssh/authorized_keys')
+        warn ''
+        warn 'public key:'
+        warn travis_public_key
+        warn 'cat public key:'
+        system('cat ~/.ssh/self.pub')
+        warn ''
       end
 
       it 'the user can clone the git repository' do
@@ -162,7 +171,16 @@ if ENV['TRAVIS']
       before(:context) do
         @user = 'ada'
         token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
-        save_public_key(token, travis_public_key)
+        warn 'save_public_key:'
+        warn save_public_key(token, travis_public_key)
+        warn 'authorized_keys:'
+        system('cat ~/.ssh/authorized_keys')
+        warn ''
+        warn 'public key:'
+        warn travis_public_key
+        warn 'cat public key:'
+        system('cat ~/.ssh/self.pub')
+        warn ''
       end
 
       it 'the user can clone the git repository' do
@@ -289,7 +307,16 @@ if ENV['TRAVIS']
       before(:context) do
         @user = 'ada'
         token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
-        save_public_key(token, travis_public_key)
+        warn 'save_public_key:'
+        warn save_public_key(token, travis_public_key)
+        warn 'authorized_keys:'
+        system('cat ~/.ssh/authorized_keys')
+        warn ''
+        warn 'public key:'
+        warn travis_public_key
+        warn 'cat public key:'
+        system('cat ~/.ssh/self.pub')
+        warn ''
       end
 
       it 'the user cannot clone the git repository' do
@@ -435,7 +462,16 @@ if ENV['TRAVIS']
       before(:context) do
         @user = 'ada'
         token = sign_in_api('ada', 'changemenow')['data']['signIn']['jwt']
-        save_public_key(token, travis_public_key)
+        warn 'save_public_key:'
+        warn save_public_key(token, travis_public_key)
+        warn 'authorized_keys:'
+        system('cat ~/.ssh/authorized_keys')
+        warn ''
+        warn 'public key:'
+        warn travis_public_key
+        warn 'cat public key:'
+        system('cat ~/.ssh/self.pub')
+        warn ''
       end
 
       it 'the user cannot clone the git repository' do
