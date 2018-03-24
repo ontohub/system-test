@@ -2,7 +2,7 @@
 
 source 'https://rubygems.org'
 
-gem 'activesupport', '~> 5.1.4'
+gem 'activesupport', '~> 5.1.5'
 gem 'capybara', '~> 2.18.0'
 gem 'chromedriver-helper'
 gem 'faker', '~> 1.8.7'
