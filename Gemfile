@@ -12,5 +12,5 @@ gem 'rspec', '~> 3.7.0'
 gem 'selenium-webdriver', '~> 3.11.0'
 
 group :development do
-  gem 'rubocop', '~> 0.55.0'
+  gem 'rubocop', '~> 0.56.0'
 end
