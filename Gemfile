@@ -9,7 +9,7 @@ gem 'faker', '~> 1.8.7'
 gem 'launchy', '~> 2.4.3'
 gem 'pry', '~> 0.11.3'
 gem 'rspec', '~> 3.7.0'
-gem 'selenium-webdriver', '~> 3.12.0'
+gem 'selenium-webdriver', '~> 3.141.5926'
 
 group :development do
   gem 'rubocop', '~> 0.56.0'
